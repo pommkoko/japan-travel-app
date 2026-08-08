@@ -17,7 +17,7 @@ import {
   Sparkles,
   Compass,
   RotateCcw,
-  Hotel,
+  Building,
   Pencil,
   Plus,
   Save,
@@ -116,7 +116,7 @@ const CATEGORY_MAP = {
   Hotel: {
     label: "โรงแรม",
     color: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
-    icon: Hotel,
+    icon: Building,
   },
   Shopping: {
     label: "ช้อปปิ้ง",
@@ -127,11 +127,11 @@ const CATEGORY_MAP = {
 
 function Header({ tripData, activeDay, setActiveDay, checkedState, totalJPY, saving }) {
   const totalItemsCount = useMemo(() => {
-    return tripData.days.reduce((acc, d) => acc + d.locations.length, 0);
+    return (tripData?.days || []).reduce((acc, d) => acc + (d.locations?.length || 0), 0);
   }, [tripData]);
 
   const checkedCount = useMemo(() => {
-    return Object.values(checkedState).filter(Boolean).length;
+    return Object.values(checkedState || {}).filter(Boolean).length;
   }, [checkedState]);
 
   const completionPercent = totalItemsCount > 0 ? Math.round((checkedCount / totalItemsCount) * 100) : 0;
@@ -145,10 +145,10 @@ function Header({ tripData, activeDay, setActiveDay, checkedState, totalJPY, sav
           </div>
           <div>
             <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5 line-clamp-1">
-              {tripData.trip_name}
+              {tripData?.trip_name || "Japan Travel"}
             </h1>
             <p className="text-xs text-slate-400">
-              {tripData.days.length} วัน | รวม {totalJPY.toLocaleString()} JPY
+              {tripData?.days?.length || 0} วัน | รวม {totalJPY.toLocaleString()} JPY
             </p>
           </div>
         </div>
@@ -188,10 +188,10 @@ function Header({ tripData, activeDay, setActiveDay, checkedState, totalJPY, sav
           ทั้งหมด
         </button>
 
-        {tripData.days.map((d) => {
+        {(tripData?.days || []).map((d) => {
           const isSelected = activeDay === d.day;
-          const dayChecked = d.locations.filter((loc) => checkedState[loc.id]).length;
-          const dayTotal = d.locations.length;
+          const dayChecked = (d.locations || []).filter((loc) => checkedState[loc.id]).length;
+          const dayTotal = d.locations?.length || 0;
 
           return (
             <button
@@ -376,7 +376,6 @@ function LocationCard({
   const categoryConfig = CATEGORY_MAP[location.category] || CATEGORY_MAP.Sightseeing;
   const CategoryIcon = categoryConfig.icon;
 
-  // ฟังก์ชันสร้างลิงก์นำทาง (รองรับทั้ง Google Maps URL และพิกัด Lat/Lng)
   const getGoogleMapsUrl = () => {
     if (location.map_url && location.map_url.startsWith('http')) {
       return location.map_url;
@@ -463,7 +462,6 @@ function LocationCard({
             )}
           </div>
 
-          {/* ปุ่มนำทาง, เปิดตั๋ว, และลูกศรขึ้น-ลง */}
           <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-2">
             
             <div className="flex flex-wrap items-center gap-2">
@@ -518,22 +516,22 @@ function LocationCard({
 
 function DayTimeline({ dayData, checkedState, onToggleCheck, onEdit, onAddLocation, onMove, searchQuery, categoryFilter }) {
   const filteredLocations = useMemo(() => {
-    return dayData.locations.filter((loc) => {
+    return (dayData?.locations || []).filter((loc) => {
       const matchesCategory = categoryFilter === 'ALL' || loc.category === categoryFilter;
       const matchesSearch =
         searchQuery === '' ||
-        loc.location_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (loc.location_name && loc.location_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (loc.transport_detail && loc.transport_detail.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (loc.start_point && loc.start_point.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesCategory && matchesSearch;
     });
-  }, [dayData.locations, categoryFilter, searchQuery]);
+  }, [dayData, categoryFilter, searchQuery]);
 
   const daySubtotalJPY = useMemo(() => {
-    return dayData.locations.reduce((sum, item) => sum + (item.cost_jpy || 0), 0);
-  }, [dayData.locations]);
+    return (dayData?.locations || []).reduce((sum, item) => sum + (item.cost_jpy || 0), 0);
+  }, [dayData]);
 
-  const totalLocs = dayData.locations.length;
+  const totalLocs = dayData?.locations?.length || 0;
 
   return (
     <div className="mb-8">
@@ -558,7 +556,7 @@ function DayTimeline({ dayData, checkedState, onToggleCheck, onEdit, onAddLocati
       {filteredLocations.length > 0 ? (
         <div className="relative">
           {filteredLocations.map((loc) => {
-            const realIndex = dayData.locations.findIndex(l => l.id === loc.id);
+            const realIndex = (dayData?.locations || []).findIndex(l => l.id === loc.id);
             return (
               <LocationCard
                 key={loc.id}
@@ -602,12 +600,10 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [checkedState, setCheckedState] = useState({});
 
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLocData, setEditingLocData] = useState(null);
   const [targetDayNum, setTargetDayNum] = useState(1);
 
-  // 1. โหลดข้อมูลจาก Supabase ตอนเปิดเว็บ
   useEffect(() => {
     fetchTripData();
   }, []);
@@ -625,7 +621,7 @@ export default function App() {
         console.error("Error fetching data:", error);
       }
 
-      if (data && data.data) {
+      if (data && data.data && Array.isArray(data.data.days)) {
         setTripData(data.data);
       } else {
         setTripData(INITIAL_TRIP_DATA);
@@ -639,7 +635,6 @@ export default function App() {
     }
   };
 
-  // 2. บันทึกข้อมูลขึ้น Supabase Cloud
   const saveToCloud = async (newData) => {
     setTripData(newData);
     setSaving(true);
@@ -678,7 +673,7 @@ export default function App() {
   const saveLocationData = (dayNum, locationData) => {
     const newData = { ...tripData };
     const dayIndex = newData.days.findIndex(d => d.day === dayNum);
-    const newLocations = [...newData.days[dayIndex].locations];
+    const newLocations = [...(newData.days[dayIndex].locations || [])];
 
     if (locationData.id) {
       const locIndex = newLocations.findIndex(l => l.id === locationData.id);
@@ -686,7 +681,7 @@ export default function App() {
     } else {
       const newId = `day${dayNum}_ext_${Date.now()}`;
       const newOrderIndex = newLocations.length > 0 
-        ? Math.max(...newLocations.map(l => l.order_index)) + 1 
+        ? Math.max(...newLocations.map(l => l.order_index || 0)) + 1 
         : 1;
       newLocations.push({ ...locationData, id: newId, order_index: newOrderIndex });
     }
@@ -699,7 +694,7 @@ export default function App() {
   const deleteLocationData = (dayNum, locationId) => {
     const newData = { ...tripData };
     const dayIndex = newData.days.findIndex(d => d.day === dayNum);
-    newData.days[dayIndex].locations = newData.days[dayIndex].locations.filter(l => l.id !== locationId);
+    newData.days[dayIndex].locations = (newData.days[dayIndex].locations || []).filter(l => l.id !== locationId);
     
     newData.days[dayIndex].locations.forEach((loc, i) => loc.order_index = i + 1);
     saveToCloud(newData);
@@ -709,7 +704,7 @@ export default function App() {
   const moveLocation = (dayNum, index, direction) => {
     const newData = { ...tripData };
     const dayIndex = newData.days.findIndex(d => d.day === dayNum);
-    const locs = [...newData.days[dayIndex].locations];
+    const locs = [...(newData.days[dayIndex].locations || [])];
 
     if (direction === 'up' && index > 0) {
       [locs[index - 1], locs[index]] = [locs[index], locs[index - 1]];
@@ -723,12 +718,13 @@ export default function App() {
   };
 
   const totalJPY = useMemo(() => {
-    return tripData.days.reduce((accDay, d) => {
-      return accDay + d.locations.reduce((accLoc, loc) => accLoc + (Number(loc.cost_jpy) || 0), 0);
+    return (tripData?.days || []).reduce((accDay, d) => {
+      return accDay + (d.locations || []).reduce((accLoc, loc) => accLoc + (Number(loc.cost_jpy) || 0), 0);
     }, 0);
   }, [tripData]);
 
   const visibleDays = useMemo(() => {
+    if (!tripData?.days) return [];
     return activeDay === 'all' ? tripData.days : tripData.days.filter((d) => d.day === activeDay);
   }, [tripData, activeDay]);
 
@@ -736,7 +732,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4 font-sans">
         <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
-        <p className="text-slate-400 text-sm">กำลังโหลดข้อมูลแผนทริปจาก Supabase...</p>
+        <p className="text-slate-400 text-sm">กำลังเชื่อมต่อฐานข้อมูลทริปญี่ปุ่น...</p>
       </div>
     );
   }
