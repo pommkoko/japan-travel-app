@@ -3,21 +3,17 @@ import {
   MapPin,
   Navigation,
   CheckCircle2,
-  Circle,
   Train,
   Utensils,
   Camera,
   ShoppingBag,
-  Building,
   Bus,
   Clock,
   Coins,
   Calendar,
   Search,
-  Filter,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
   Sparkles,
   Compass,
   RotateCcw,
@@ -32,10 +28,10 @@ import {
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
-// Master trip dataset containing full 5-day Tokyo & Fuji itinerary
+// ข้อมูลเริ่มต้นแบบสั้น (มีแค่ Day 1 และ Day 2)
 const INITIAL_TRIP_DATA = {
   trip_name: "Japan Travel (Tokyo & Fuji)",
-  total_days: 5,
+  total_days: 2,
   days: [
     {
       day: 1,
@@ -48,11 +44,12 @@ const INITIAL_TRIP_DATA = {
           time: "09:30 - 10:30",
           start_point: "สนามบินนาริตะ (Terminal 1/2)",
           location_name: "สนามบินนาริตะ (Terminal 1/2)",
-          transport_detail: "ผ่านด่าน ตม. รับกระเป๋า และไปที่เคาน์เตอร์ Keisei เพื่อแลกตั๋ว Skyliner + ซื้อตั๋ว Tokyo Subway 72-Hour Pass",
+          transport_detail: "ผ่านด่าน ตม. รับกระเป๋า และไปที่เคาน์เตอร์ Keisei เพื่อแลกตั๋ว Skyliner",
           cost_info: "-",
           cost_jpy: 0,
           category: "Transport",
-          map_url: "https://maps.app.goo.gl/3A2aX",
+          lat: 35.7647,
+          lng: 140.3863,
           ticket_url: ""
         },
         {
@@ -61,585 +58,33 @@ const INITIAL_TRIP_DATA = {
           time: "10:40 - 11:21",
           start_point: "สนามบินนาริตะ",
           location_name: "สถานี Keisei-Ueno",
-          transport_detail: "เดินไปชานชาลา Keisei นั่งรถไฟด่วน Keisei Skyliner (ยิงตรงไม่หยุดพัก 41 นาที)",
+          transport_detail: "นั่งรถไฟด่วน Keisei Skyliner (ยิงตรงไม่หยุดพัก 41 นาที)",
           cost_info: "[ใช้ตั๋ว Skyliner ขาไป]",
           cost_jpy: 0,
           category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_03",
-          order_index: 3,
-          time: "11:30 - 12:15",
-          start_point: "สถานี Keisei-Ueno",
-          location_name: "โรงแรมที่พัก (ย่าน Ueno)",
-          transport_detail: "เดินเท้า 5-10 นาที ลากกระเป๋าไปฝากไว้ที่ล็อกบี้โรงแรม",
-          cost_info: "-",
-          cost_jpy: 0,
-          category: "Hotel",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_04",
-          order_index: 4,
-          time: "12:30 - 12:45",
-          start_point: "สถานี Ueno (G16)",
-          location_name: "สถานี Asakusa (G19)",
-          transport_detail: "เดินเข้าสถานีใต้ดิน นั่ง Tokyo Metro Ginza Line (สายสีส้ม) 3 สถานี ไปลง Asakusa (5 นาที) ออกทางออก Exit 1",
-          cost_info: "[เริ่มเปิดใช้ตั๋ว Subway 72h]",
-          cost_jpy: 0,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_05",
-          order_index: 5,
-          time: "12:45 - 15:00",
-          start_point: "สถานี Asakusa",
-          location_name: "วัด Senso-ji & ถนน Nakamise",
-          transport_detail: "เดินเท้า 2 นาทีเข้าสู่ประตูโคมแดง (Kaminarimon) ไหว้พระถ่ายรูป ชิมสตรีทฟู้ด และทานมื้อเที่ยง Onigiri Yadoroku",
-          cost_info: "ค่ากิน: ~1,500 เยน",
-          cost_jpy: 1500,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_06",
-          order_index: 6,
-          time: "15:00 - 15:15",
-          start_point: "สถานี Asakusa (A18)",
-          location_name: "สถานี Oshiage / Skytree (A20)",
-          transport_detail: "เดินไปสถานีใต้ดิน นั่ง Toei Subway Asakusa Line (สายสีชมพู) 2 สถานี ไปลง Oshiage (3 นาที)",
-          cost_info: "[ใช้ตั๋ว Subway 72h]",
-          cost_jpy: 0,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_07",
-          order_index: 7,
-          time: "15:15 - 17:15",
-          start_point: "สถานี Oshiage",
-          location_name: "Tokyo Skytree & Solamachi",
-          transport_detail: "ขึ้นตึกชมวิว Tokyo Skytree ยามบ่าย มองเห็นวิวเมืองกว้างไกล และเดินช้อปปิ้งของฝากในห้าง Solamachi",
-          cost_info: "ค่าขึ้นตึก: ~2,700 เยน",
-          cost_jpy: 2700,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_08",
-          order_index: 8,
-          time: "17:30 - 17:45",
-          start_point: "สถานี Oshiage (Z14)",
-          location_name: "สถานี Akihabara",
-          transport_detail: "นั่ง Tokyo Metro Hanzomon Line (สายสีม่วง) ไปลง Kinshicho (Z13) แล้วสลับขึ้นรถไฟ JR Chuo-Sobu Line ไปลง Akihabara",
-          cost_info: "[ใช้ Subway 72h + แตะ IC Card 180 เยน]",
-          cost_jpy: 180,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_09",
-          order_index: 9,
-          time: "17:45 - 20:00",
-          start_point: "สถานี Akihabara",
-          location_name: "ศาลเจ้า Kanda Myojin & Akihabara",
-          transport_detail: "เดินเท้า 7 นาทีไปไหว้ศาลเจ้า Kanda Myojin ก่อนค่ำ แล้วย้อนกลับมาเดินตึกฟิกเกอร์ อนิเมะ ทานราเมน Menya Itto / Nakiryu",
-          cost_info: "ค่ากิน: ~1,200 เยน",
-          cost_jpy: 1200,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_10",
-          order_index: 10,
-          time: "20:15 - 20:20",
-          start_point: "สถานี Akihabara",
-          location_name: "สถานี Ueno",
-          transport_detail: "นั่งรถไฟ JR Yamanote Line (สายสีเขียววงกลม) ย้อนกลับมา Ueno เพียง 2 สถานี (3 นาที)",
-          cost_info: "[แตะ IC Card 150 เยน]",
-          cost_jpy: 150,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day1_11",
-          order_index: 11,
-          time: "20:20 - 22:30",
-          start_point: "สถานี Ueno",
-          location_name: "ตลาด Ameyoko & ร้าน Isomaru Suisan",
-          transport_detail: "เดินรับลมยามค่ำคืนที่ตลาด Ameyoko และทานมันปูย่าง/อาหารทะเลปิดท้ายวันที Isomaru Suisan",
-          cost_info: "ค่ากินดื่ม: ~2,500 เยน",
-          cost_jpy: 2500,
-          category: "Food",
-          map_url: "",
+          lat: 35.7112,
+          lng: 139.7745,
           ticket_url: ""
         }
       ]
     },
     {
       day: 2,
-      title: "Market, Temple & Shibuya",
-      subtitle: "Toyosu Market, Gotokuji, Harajuku & Shinjuku",
+      title: "Classic Tokyo & Shopping",
+      subtitle: "Meiji Shrine, Harajuku, Shibuya & Tsukiji",
       locations: [
         {
           id: "day2_01",
           order_index: 1,
-          time: "08:00 - 08:25",
+          time: "08:00 - 10:00",
           start_point: "สถานี Ueno",
-          location_name: "สถานี Shishido (Toyosu)",
-          transport_detail: "นั่งใต้ดิน Ginza Line ไป Shimbashi แล้วต่อสาย Yurikamome ไปลงสถานี Shishido (หน้าตลาด Toyosu)",
-          cost_info: "[Subway 72h + แตะ IC Card 390 เยน]",
-          cost_jpy: 390,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_02",
-          order_index: 2,
-          time: "08:25 - 10:00",
-          start_point: "สถานี Shishido",
-          location_name: "ตลาดปลา Toyosu (Senkyaku Banrai)",
-          transport_detail: "เดินชมโซนตลาดอาหารย้อนยุค Senkyaku Banrai หาอาหารเช้าทานซูชิสายพาน Uobei หรือซาซิมิสดๆ",
+          location_name: "ตลาดปลา Tsukiji Outer Market",
+          transport_detail: "ทานไข่หวานย่าง ข้าวหน้าปลาดิบ (Kaisen-don) และอาหารทะเลสดๆ",
           cost_info: "ค่ากิน: ~2,500 เยน",
           cost_jpy: 2500,
           category: "Food",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_03",
-          order_index: 3,
-          time: "10:15 - 10:45",
-          start_point: "สถานี Toyosu",
-          location_name: "สถานี Gotokuji",
-          transport_detail: "นั่ง Yurakucho Line จาก Toyosu ไป Ichigaya แล้วเปลี่ยนเป็น Shinjuku Line ไป Shinjuku เพื่อต่อ Odakyu Line ไป Gotokuji",
-          cost_info: "[Subway 72h + แตะ IC Card 170 เยน]",
-          cost_jpy: 170,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_04",
-          order_index: 4,
-          time: "10:45 - 12:00",
-          start_point: "สถานี Gotokuji",
-          location_name: "วัดแมวกวัก Gotokuji Temple",
-          transport_detail: "เดินเท้า 5 นาทีจากสถานี เข้าสู่วัดแมวกวัก ถ่ายรูปคู่กับฝูงตุ๊กตาแมวกวักนับพันตัว",
-          cost_info: "-",
-          cost_jpy: 0,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_05",
-          order_index: 5,
-          time: "12:15 - 12:30",
-          start_point: "สถานี Gotokuji",
-          location_name: "สถานี Harajuku",
-          transport_detail: "นั่ง Odakyu Line ย้อนกลับมาลง Yoyogi-uehara แล้วเปลี่ยนเป็น Chiyoda Line ไปลง Meijijingu-mae (Harajuku)",
-          cost_info: "[Subway 72h + แตะ IC Card 170 เยน]",
-          cost_jpy: 170,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_06",
-          order_index: 6,
-          time: "12:30 - 15:30",
-          start_point: "สถานี Harajuku",
-          location_name: "ศาลเจ้าเมจิ (Meiji Jingu) & ถนน Takeshita",
-          transport_detail: "เดินเข้าป่าศาลเจ้าเมจิ พนมมือขอพร แล้วข้ามฝั่งมาตะลุยถนน Takeshita, Omotesando ทานเกี๊ยวซ่า Harajuku Gyozaro",
-          cost_info: "ค่ากิน: ~1,400 เยน",
-          cost_jpy: 1400,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_07",
-          order_index: 7,
-          time: "15:45 - 16:00",
-          start_point: "สถานี Harajuku",
-          location_name: "สถานี Shinjuku",
-          transport_detail: "นั่ง JR Yamanote Line ไปลง Shinjuku เพียง 2 สถานี (5 นาที)",
-          cost_info: "[แตะ IC Card 150 เยน]",
-          cost_jpy: 150,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_08",
-          order_index: 8,
-          time: "16:00 - 18:00",
-          start_point: "สถานี Shinjuku",
-          location_name: "สวน Shinjuku Gyoen National Garden",
-          transport_detail: "เดินออกทางออก South Exit เดิน 10 นาทีเข้าสวน Shinjuku Gyoen เดินชมธรรมชาติก่อนสวนปิด (ประตูปิด 16:30 น.)",
-          cost_info: "ค่าเข้าสวน: 500 เยน",
-          cost_jpy: 500,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_09",
-          order_index: 9,
-          time: "18:15 - 23:00",
-          start_point: "สถานี Shinjuku",
-          location_name: "Kabukicho, ตึก Godzilla & Omoide Yokocho",
-          transport_detail: "เดินข้ามมาฝั่ง East/North Exit เข้าย่าน Kabukicho ถ่ายรูปหัวก๊อดซิลล่า ทานเทมปุระ Tsunahachi และนั่งดื่มตรอก Omoide Yokocho ยาวๆ ถึงดึก",
-          cost_info: "ค่ากินดื่มดึก: ~3,000 เยน",
-          cost_jpy: 3000,
-          category: "Food",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day2_10",
-          order_index: 10,
-          time: "23:15 - 23:40",
-          start_point: "สถานี Shinjuku",
-          location_name: "สถานี Ueno",
-          transport_detail: "นั่ง JR Yamanote Line (ขบวนก่อนสุดท้าย) จาก Shinjuku กลับมาลง Ueno (25 นาที) เพื่อกลับโรงแรม",
-          cost_info: "[แตะ IC Card 210 เยน]",
-          cost_jpy: 210,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        }
-      ]
-    },
-    {
-      day: 3,
-      title: "Fuji Day Trip & Shibuya Night",
-      subtitle: "Chureito Pagoda, Kawaguchiko & Shibuya Sky",
-      locations: [
-        {
-          id: "day3_01",
-          order_index: 1,
-          time: "06:15 - 06:40",
-          start_point: "สถานี Ueno",
-          location_name: "สถานี Shinjuku (Bus Terminal)",
-          transport_detail: "นั่ง JR Yamanote Line จาก Ueno ไปลง Shinjuku ออกทางออก New South Exit ขึ้นชั้น 4 ตึก Busta Shinjuku",
-          cost_info: "[แตะ IC Card 210 เยน]",
-          cost_jpy: 210,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_02",
-          order_index: 2,
-          time: "07:15 - 09:05",
-          start_point: "Shinjuku Bus Terminal",
-          location_name: "ป้ายรถบัส Chureito Pagoda (Shimoyoshida)",
-          transport_detail: "ขึ้น Highway Bus (รอบ 07:15) ยิงตรงบนทางด่วน ลงป้าย Chureito Pagoda / Shimoyoshida Bus Stop",
-          cost_info: "[จองล่วงหน้า ~2,200 เยน]",
-          cost_jpy: 2200,
-          category: "Transport",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_03",
-          order_index: 3,
-          time: "09:15 - 11:30",
-          start_point: "ป้าย Shimoyoshida",
-          location_name: "เจดีย์แดง Chureito Pagoda & Honcho St.",
-          transport_detail: "เดินขึ้นบันได 398 ขั้น ชมวิวเจดีย์คู่ฟูจิ แล้วเดินลงมา 10 นาทีเข้าถนน Honcho Street",
-          cost_info: "-",
-          cost_jpy: 0,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_04",
-          order_index: 4,
-          time: "11:30 - 12:30",
-          start_point: "ย่าน Shimoyoshida",
-          location_name: "ร้านอาหารท้องถิ่น Fujiyoshida",
-          transport_detail: "ทานมื้อเที่ยงเมนูท้องถิ่น Yoshida Udon",
-          cost_info: "ค่ากิน: ~900 เยน",
-          cost_jpy: 900,
-          category: "Food",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_05",
-          order_index: 5,
-          time: "12:45 - 13:00",
-          start_point: "สถานี Shimoyoshida",
-          location_name: "สถานี Kawaguchiko",
-          transport_detail: "นั่งรถไฟสาย Fujikyu Railway 3 สถานีไปลงสถานี Kawaguchiko (12 นาที)",
-          cost_info: "[แตะ IC Card ~310 เยน]",
-          cost_jpy: 310,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_06",
-          order_index: 6,
-          time: "13:15 - 15:00",
-          start_point: "สถานี Kawaguchiko",
-          location_name: "สวนโออิชิ (Oishi Park)",
-          transport_detail: "หน้าสถานี Kawaguchiko นั่งรถบัส Omni Bus (Red Line) ไปลงป้ายสุดท้าย Oishi Park",
-          cost_info: "[แตะ IC Card/ตั๋วบัส ~490 เยน]",
-          cost_jpy: 490,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_07",
-          order_index: 7,
-          time: "15:15 - 16:15",
-          start_point: "ป้าย Oishi Park",
-          location_name: "กระเช้า Mt. Fuji Panoramic Ropeway",
-          transport_detail: "นั่ง Red Line ย้อนกลับมาลงป้าย Ropeway ขึ้นกระเช้าลอยฟ้าชมวิวทะเลสาบ",
-          cost_info: "ค่ากระเช้า: ~1,000 เยน",
-          cost_jpy: 1000,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_08",
-          order_index: 8,
-          time: "16:30 - 18:30",
-          start_point: "สถานี Kawaguchiko",
-          location_name: "สถานี Shibuya",
-          transport_detail: "ขึ้น Highway Bus ขากลับ (ยิงตรงลง Shibuya Bus Terminal)",
-          cost_info: "[จองล่วงหน้า ~2,200 เยน]",
-          cost_jpy: 2200,
-          category: "Transport",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_09",
-          order_index: 9,
-          time: "18:45 - 20:30",
-          start_point: "สถานี Shibuya",
-          location_name: "Shibuya Sky & ห้าแยก Shibuya",
-          transport_detail: "ขึ้นตึก Shibuya Scramble Square เข้า Shibuya Sky ชมวิวไฟเมืองยามค่ำคืน",
-          cost_info: "ค่าเข้า Shibuya Sky: ~2,700 เยน",
-          cost_jpy: 2700,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_10",
-          order_index: 10,
-          time: "20:30 - 22:00",
-          start_point: "ห้าแยก Shibuya",
-          location_name: "ร้านอาหารย่าน Shibuya",
-          transport_detail: "ทานมื้อเย็นลิ้นวัวย่าง Negishi หรือซูชิสายพาน Uobei Sushi",
-          cost_info: "ค่ากิน: ~2,200 เยน",
-          cost_jpy: 2200,
-          category: "Food",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day3_11",
-          order_index: 11,
-          time: "22:15 - 22:40",
-          start_point: "สถานี Shibuya",
-          location_name: "สถานี Ueno",
-          transport_detail: "นั่ง JR Yamanote Line จาก Shibuya วิ่งตรงกลับมาลงสถานี Ueno (27 นาที)",
-          cost_info: "[แตะ IC Card 210 เยน]",
-          cost_jpy: 210,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        }
-      ]
-    },
-    {
-      day: 4,
-      title: "Tsukiji, Odaiba & Roppongi",
-      subtitle: "Tsukiji Fish Market, Imperial Palace, Odaiba",
-      locations: [
-        {
-          id: "day4_01",
-          order_index: 1,
-          time: "08:00 - 08:15",
-          start_point: "สถานี Ueno (H18)",
-          location_name: "สถานี Tsukiji (H11)",
-          transport_detail: "นั่ง Tokyo Metro Hibiya Line จาก Ueno ลงที่ Tsukiji",
-          cost_info: "[ใช้ตั๋ว Subway 72h]",
-          cost_jpy: 0,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day4_02",
-          order_index: 2,
-          time: "08:15 - 10:15",
-          start_point: "สถานี Tsukiji",
-          location_name: "ตลาดปลา Tsukiji & วัด Tsukiji Hongwanji",
-          transport_detail: "แวะวัดทรงอินเดีย Tsukiji Hongwanji และข้ามฝั่งไปทานสตรีทฟู้ด",
-          cost_info: "ค่ากิน: ~2,000 เยน",
-          cost_jpy: 2000,
-          category: "Food",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day4_03",
-          order_index: 3,
-          time: "10:15 - 11:45",
-          start_point: "ตลาดปลา Tsukiji",
-          location_name: "วัด Zojo-ji & สวน Shiba Park",
-          transport_detail: "นั่งใต้ดินไปลง Daimon เดินถ่ายรูปอุโบสถวัดโบราณคู่กับ Tokyo Tower",
-          cost_info: "ฟรี",
-          cost_jpy: 0,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day4_04",
-          order_index: 4,
-          time: "12:00 - 14:00",
-          start_point: "สถานี Otemachi",
-          location_name: "Imperial Palace & ทานมื้อเที่ยง",
-          transport_detail: "เดินชมสวนพระราชวังอิมพีเรียล ทานข้าวแกงกะหรี่ Curry Bondy",
-          cost_info: "ค่ากิน: ~1,500 เยน",
-          cost_jpy: 1500,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day4_05",
-          order_index: 5,
-          time: "14:15 - 17:15",
-          start_point: "สถานี Tokyo / Shimbashi",
-          location_name: "Odaiba Marine Park & ห้าง DiverCity",
-          transport_detail: "นั่งรถไฟลอยฟ้า Yurikamome ไป Odaiba ถ่ายรูปเทพีเสรีภาพจำลองและหุ่น Gundam",
-          cost_info: "ค่าเดินทาง/กิน: ~1,500 เยน",
-          cost_jpy: 1500,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day4_06",
-          order_index: 6,
-          time: "17:30 - 21:00",
-          start_point: "สถานี Odaiba",
-          location_name: "Roppongi Hills & มื้อค่ำ",
-          transport_detail: "ขึ้นจุดชมวิวชั้น 52 (Mori Tower) และทานยากิโทริยามค่ำคืน",
-          cost_info: "ค่าเข้า/ค่ากิน: ~4,000 เยน",
-          cost_jpy: 4000,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day4_07",
-          order_index: 7,
-          time: "21:15 - 21:35",
-          start_point: "สถานี Roppongi (H04)",
-          location_name: "สถานี Ueno (H18)",
-          transport_detail: "นั่ง Tokyo Metro Hibiya Line กลับมาลงสถานี Ueno",
-          cost_info: "[ใช้ตั๋ว Subway 72h]",
-          cost_jpy: 0,
-          category: "Transit",
-          map_url: "",
-          ticket_url: ""
-        }
-      ]
-    },
-    {
-      day: 5,
-      title: "Yanaka, Shopping & Departure",
-      subtitle: "Bunkyo Civic Center, Yanaka Ginza & Narita",
-      locations: [
-        {
-          id: "day5_01",
-          order_index: 1,
-          time: "08:50 - 10:00",
-          start_point: "สถานี Korakuen",
-          location_name: "Bunkyo Civic Center (ชั้น 25)",
-          transport_detail: "เดินเข้าตึกรัฐบาล Bunkyo ขึ้นลิฟต์ไปชั้น 25 ฟรี! ชมวิวเมืองโตเกียว",
-          cost_info: "ฟรี",
-          cost_jpy: 0,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day5_02",
-          order_index: 2,
-          time: "10:30 - 12:00",
-          start_point: "สถานี Nezu / Nippori",
-          location_name: "ศาลเจ้า Nezu Shrine & เมืองเก่ายานากะ",
-          transport_detail: "เดินถ่ายรูปอุโมงค์เสาแดง Nezu Shrine และถนนคนเดิน Yanaka Ginza",
-          cost_info: "ค่าขนม: ~1,000 เยน",
-          cost_jpy: 1000,
-          category: "Sightseeing",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day5_03",
-          order_index: 3,
-          time: "12:30 - 13:45",
-          start_point: "สถานี Ueno",
-          location_name: "ตึกม่วง Takeya / Don Quijote Ueno",
-          transport_detail: "ซื้อของฝากนาทีสุดท้ายที่ตึกม่วง ทานข้าว และรับกระเป๋าเดินทางที่โรงแรม",
-          cost_info: "ค่ากิน: ~1,000 เยน",
-          cost_jpy: 1000,
-          category: "Shopping",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day5_04",
-          order_index: 4,
-          time: "14:00 - 14:41",
-          start_point: "สถานี Keisei-Ueno",
-          location_name: "สนามบินนาริตะ (Terminal 1/2)",
-          transport_detail: "ขึ้นรถไฟด่วน Keisei Skyliner (รอบ 14:00 น.) ยิงตรงถึงสนามบินนาริตะ",
-          cost_info: "[ใช้ตั๋ว Skyliner ขากลับ]",
-          cost_jpy: 0,
-          category: "Transport",
-          map_url: "",
-          ticket_url: ""
-        },
-        {
-          id: "day5_05",
-          order_index: 5,
-          time: "14:45 - 17:00",
-          start_point: "สนามบินนาริตะ",
-          location_name: "เดินทางกลับประเทศไทย",
-          transport_detail: "โหลดกระเป๋า ผ่านด่านตรวจค้น ผ่าน Duty Free และเตรียมขึ้นเครื่อง",
-          cost_info: "-",
-          cost_jpy: 0,
-          category: "Transport",
-          map_url: "",
+          lat: 35.6654,
+          lng: 139.7707,
           ticket_url: ""
         }
       ]
@@ -703,14 +148,14 @@ function Header({ tripData, activeDay, setActiveDay, checkedState, totalJPY, sav
               {tripData.trip_name}
             </h1>
             <p className="text-xs text-slate-400">
-              {tripData.total_days} วัน | รวม {totalJPY.toLocaleString()} JPY
+              {tripData.days.length} วัน | รวม {totalJPY.toLocaleString()} JPY
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {saving && (
-            <span className="text-[10px] text-emerald-400 flex items-center gap-1 bg-emerald-950/50 px-2 py-1 rounded border border-emerald-800/50 font-mono">
+            <span className="text-[10px] text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2 py-1 rounded border border-emerald-800/50 font-mono">
               <Loader2 className="w-3 h-3 animate-spin" /> Saving...
             </span>
           )}
@@ -783,14 +228,16 @@ function LocationModal({ isOpen, onClose, onSave, onDelete, initialData, dayNum 
     cost_info: '',
     cost_jpy: 0,
     category: 'Sightseeing',
-    map_url: '',
+    lat: 35.6895,
+    lng: 139.6917,
     ticket_url: '',
+    map_url: '',
     ...initialData
   });
 
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...initialData });
+      setFormData({ map_url: '', ...initialData });
     } else {
       setFormData({
         time: '',
@@ -800,8 +247,10 @@ function LocationModal({ isOpen, onClose, onSave, onDelete, initialData, dayNum 
         cost_info: '',
         cost_jpy: 0,
         category: 'Sightseeing',
-        map_url: '',
+        lat: 35.6895,
+        lng: 139.6917,
         ticket_url: '',
+        map_url: '',
       });
     }
   }, [initialData, isOpen]);
@@ -812,7 +261,7 @@ function LocationModal({ isOpen, onClose, onSave, onDelete, initialData, dayNum 
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'cost_jpy' ? Number(value) || 0 : value
+      [name]: name === 'cost_jpy' || name === 'lat' || name === 'lng' ? Number(value) || 0 : value
     }));
   };
 
@@ -851,7 +300,7 @@ function LocationModal({ isOpen, onClose, onSave, onDelete, initialData, dayNum 
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">ชื่อสถานที่ (เป้าหมาย)</label>
+            <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">ชื่อสถานที่ (เป้าหมาย) *</label>
             <input type="text" name="location_name" value={formData.location_name} onChange={handleChange} placeholder="จุดหมายปลายทาง" className="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-900 dark:text-white" />
           </div>
 
@@ -878,14 +327,14 @@ function LocationModal({ isOpen, onClose, onSave, onDelete, initialData, dayNum 
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-              <Navigation className="w-3.5 h-3.5" /> ลิงก์ Google Maps (หรือพิกัด/ชื่อ)
+              <MapPin className="w-3.5 h-3.5 text-cyan-500" /> ลิงก์ Google Maps (สำหรับปุ่มนำทาง)
             </label>
-            <input type="text" name="map_url" value={formData.map_url || ''} onChange={handleChange} placeholder="วางลิงก์ https://maps.app.goo.gl/... ที่นี่" className="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-900 dark:text-white placeholder-slate-500" />
+            <input type="text" name="map_url" value={formData.map_url || ''} onChange={handleChange} placeholder="วางลิงก์ https://maps.app.goo.gl/... ที่นี่" className="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-900 dark:text-white" />
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1">
-              <Ticket className="w-3.5 h-3.5" /> ลิงก์เก็บตั๋ว / QR Code (Ticket URL)
+              <Ticket className="w-3.5 h-3.5 text-amber-500" /> ลิงก์เก็บตั๋ว / QR Code (Ticket URL)
             </label>
             <input type="text" name="ticket_url" value={formData.ticket_url || ''} onChange={handleChange} placeholder="https://..." className="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 outline-none text-slate-900 dark:text-white" />
           </div>
@@ -927,15 +376,15 @@ function LocationCard({
   const categoryConfig = CATEGORY_MAP[location.category] || CATEGORY_MAP.Sightseeing;
   const CategoryIcon = categoryConfig.icon;
 
-  // ฟังก์ชันฉลาดขึ้นสำหรับปุ่มนำทาง
-  const openMap = () => {
-    if (location.map_url && location.map_url.startsWith("http")) {
-      window.open(location.map_url, "_blank");
-    } else if (location.map_url) {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.map_url)}`, "_blank");
-    } else {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.location_name + " Japan")}`, "_blank");
+  // ฟังก์ชันสร้างลิงก์นำทาง (รองรับทั้ง Google Maps URL และพิกัด Lat/Lng)
+  const getGoogleMapsUrl = () => {
+    if (location.map_url && location.map_url.startsWith('http')) {
+      return location.map_url;
     }
+    if (location.lat && location.lng) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.location_name + " Japan")}`;
   };
 
   const hasTicket = !!location.ticket_url;
@@ -995,12 +444,14 @@ function LocationCard({
             </p>
           )}
 
-          <div className="mt-2.5 p-2.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            <div className="flex items-start gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-              <span>{location.transport_detail}</span>
+          {location.transport_detail && (
+            <div className="mt-2.5 p-2.5 rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <div className="flex items-start gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                <span>{location.transport_detail}</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-3 flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-400">
             <Coins className="w-3.5 h-3.5 text-amber-500" />
@@ -1012,17 +463,19 @@ function LocationCard({
             )}
           </div>
 
-          {/* Action Footer (Navigation, Ticket, Order Arrows) */}
+          {/* ปุ่มนำทาง, เปิดตั๋ว, และลูกศรขึ้น-ลง */}
           <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-2">
             
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={openMap}
+              <a
+                href={getGoogleMapsUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 min-h-[36px] px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-transform active:scale-95"
               >
                 <Navigation className="w-3.5 h-3.5" />
                 <span>นำทาง</span>
-              </button>
+              </a>
 
               {hasTicket && (
                 <a
@@ -1070,8 +523,8 @@ function DayTimeline({ dayData, checkedState, onToggleCheck, onEdit, onAddLocati
       const matchesSearch =
         searchQuery === '' ||
         loc.location_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.transport_detail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.start_point.toLowerCase().includes(searchQuery.toLowerCase());
+        (loc.transport_detail && loc.transport_detail.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (loc.start_point && loc.start_point.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesCategory && matchesSearch;
     });
   }, [dayData.locations, categoryFilter, searchQuery]);
@@ -1144,11 +597,9 @@ export default function App() {
   const [tripData, setTripData] = useState(INITIAL_TRIP_DATA);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const [activeDay, setActiveDay] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-
   const [checkedState, setCheckedState] = useState({});
 
   // Modal State
@@ -1156,7 +607,7 @@ export default function App() {
   const [editingLocData, setEditingLocData] = useState(null);
   const [targetDayNum, setTargetDayNum] = useState(1);
 
-  // 1. โหลดข้อมูลจาก Supabase ตอนเริ่มแอป
+  // 1. โหลดข้อมูลจาก Supabase ตอนเปิดเว็บ
   useEffect(() => {
     fetchTripData();
   }, []);
@@ -1175,32 +626,25 @@ export default function App() {
       }
 
       if (data && data.data) {
-        setTripData(data.data.tripData || data.data);
-        if (data.data.checkedState) {
-          setCheckedState(data.data.checkedState);
-        }
+        setTripData(data.data);
       } else {
-        // ถ้ายังไม่มีใน DB ให้ใช้ค่าเริ่มต้นแล้วเซฟขึ้น DB
-        await saveToCloud(INITIAL_TRIP_DATA, {});
+        setTripData(INITIAL_TRIP_DATA);
+        await supabase.from('trip_data').upsert({ id: 1, data: INITIAL_TRIP_DATA });
       }
     } catch (err) {
       console.error(err);
+      setTripData(INITIAL_TRIP_DATA);
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. เซฟข้อมูลทั้งหมด (ทริป + สถานะเช็กอิน) ขึ้น Supabase
-  const saveToCloud = async (newTripData, newCheckedState) => {
-    setTripData(newTripData);
-    setCheckedState(newCheckedState);
+  // 2. บันทึกข้อมูลขึ้น Supabase Cloud
+  const saveToCloud = async (newData) => {
+    setTripData(newData);
     setSaving(true);
     try {
-      const payload = {
-        tripData: newTripData,
-        checkedState: newCheckedState
-      };
-      await supabase.from('trip_data').upsert({ id: 1, data: payload });
+      await supabase.from('trip_data').upsert({ id: 1, data: newData });
     } catch (err) {
       console.error("Error saving to cloud:", err);
     } finally {
@@ -1208,15 +652,14 @@ export default function App() {
     }
   };
 
-  // Actions
   const handleToggleCheck = (id) => {
-    const nextState = { ...checkedState, [id]: !checkedState[id] };
-    saveToCloud(tripData, nextState);
+    setCheckedState((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleResetEverything = () => {
+  const handleResetEverything = async () => {
     if (window.confirm("คุณต้องการล้างการแก้ไขและรีเซ็ตแผนกลับเป็นค่าเริ่มต้นทั้งหมดใช่หรือไม่?")) {
-      saveToCloud(INITIAL_TRIP_DATA, {});
+      setCheckedState({});
+      await saveToCloud(INITIAL_TRIP_DATA);
     }
   };
 
@@ -1233,7 +676,7 @@ export default function App() {
   };
 
   const saveLocationData = (dayNum, locationData) => {
-    const newData = JSON.parse(JSON.stringify(tripData));
+    const newData = { ...tripData };
     const dayIndex = newData.days.findIndex(d => d.day === dayNum);
     const newLocations = [...newData.days[dayIndex].locations];
 
@@ -1249,22 +692,22 @@ export default function App() {
     }
 
     newData.days[dayIndex].locations = newLocations;
-    saveToCloud(newData, checkedState);
+    saveToCloud(newData);
     setIsModalOpen(false);
   };
 
   const deleteLocationData = (dayNum, locationId) => {
-    const newData = JSON.parse(JSON.stringify(tripData));
+    const newData = { ...tripData };
     const dayIndex = newData.days.findIndex(d => d.day === dayNum);
     newData.days[dayIndex].locations = newData.days[dayIndex].locations.filter(l => l.id !== locationId);
     
     newData.days[dayIndex].locations.forEach((loc, i) => loc.order_index = i + 1);
-    saveToCloud(newData, checkedState);
+    saveToCloud(newData);
     setIsModalOpen(false);
   };
 
   const moveLocation = (dayNum, index, direction) => {
-    const newData = JSON.parse(JSON.stringify(tripData));
+    const newData = { ...tripData };
     const dayIndex = newData.days.findIndex(d => d.day === dayNum);
     const locs = [...newData.days[dayIndex].locations];
 
@@ -1276,7 +719,7 @@ export default function App() {
 
     locs.forEach((loc, i) => loc.order_index = i + 1);
     newData.days[dayIndex].locations = locs;
-    saveToCloud(newData, checkedState);
+    saveToCloud(newData);
   };
 
   const totalJPY = useMemo(() => {
@@ -1291,9 +734,9 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4 font-sans">
         <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
-        <p className="text-slate-400">กำลังเชื่อมต่อฐานข้อมูล Supabase...</p>
+        <p className="text-slate-400 text-sm">กำลังโหลดข้อมูลแผนทริปจาก Supabase...</p>
       </div>
     );
   }
@@ -1384,7 +827,7 @@ export default function App() {
               <span>รีเซ็ตแผนทั้งหมดกลับเป็นค่าเริ่มต้น</span>
             </button>
             <p className="text-[10px] text-slate-400 mt-4">
-              Editable Japan Itinerary • Cloud-synced with Supabase
+              Japan Travel Companion • Cloud Synced with Supabase
             </p>
           </div>
         </main>
