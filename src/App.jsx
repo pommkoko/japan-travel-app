@@ -28,7 +28,9 @@ import {
   FileText,
   DollarSign,
   CheckSquare,
-  Upload
+  Upload,
+  WifiOff,
+  Download
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -162,10 +164,15 @@ export default function App() {
   const [editingLocData, setEditingLocData] = useState(null);
   const [targetDayNum, setTargetDayNum] = useState(1);
 
-  // States สำหรับการจัดการอัปโหลดไฟล์
+  // Storage states
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadedTicketUrl, setUploadedTicketUrl] = useState('');
   const [newlyUploadedUrls, setNewlyUploadedUrls] = useState([]);
+
+  // PWA & Network Status States
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   const saveTimeoutRef = useRef(null);
   const latestStoreRef = useRef(null);
@@ -177,7 +184,6 @@ export default function App() {
     return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   };
 
-  // --- ฟังก์ชันช่วยเหลือในการลบไฟล์ออกจาก Supabase Storage ---
   const deleteFileFromStorage = async (fileUrl) => {
     if (!fileUrl || !fileUrl.includes('trip-attachments')) return;
     try {
@@ -192,6 +198,10 @@ export default function App() {
   };
 
   const pushToCloud = async (payload) => {
+    if (!navigator.onLine) {
+      setSaving(false);
+      return;
+    }
     try {
       setSaving(true);
       await supabase.from('trip_data').upsert({ id: 1, data: payload });
@@ -205,6 +215,20 @@ export default function App() {
   useEffect(() => {
     initApp();
 
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -217,10 +241,23 @@ export default function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBanner(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   const initApp = async () => {
     setLoading(true);
@@ -245,6 +282,11 @@ export default function App() {
       if (localData.checkedState) setCheckedState(localData.checkedState);
       latestStoreRef.current = localData;
       setLoading(false);
+    }
+
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
     }
 
     try {
@@ -371,7 +413,6 @@ export default function App() {
     }, 1500);
   };
 
-  // --- ฟังก์ชันการอัปโหลดไฟล์ขึ้น Supabase Storage ---
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -400,7 +441,6 @@ export default function App() {
         .getPublicUrl(filePath);
 
       if (publicUrlData?.publicUrl) {
-        // หากเป็นการอัปโหลดไฟล์ใหม่ทับของเดิม ลบไฟล์เก่าทิ้ง
         if (uploadedTicketUrl && uploadedTicketUrl !== editingLocData?.ticket_url) {
           await deleteFileFromStorage(uploadedTicketUrl);
         }
@@ -417,7 +457,6 @@ export default function App() {
     }
   };
 
-  // ปิด Modal โดยกวาดลบไฟล์ขยะที่กดอัปโหลดเล่นแต่ไม่ได้บันทึก
   const handleCloseModal = async () => {
     if (newlyUploadedUrls.length > 0) {
       for (const url of newlyUploadedUrls) {
@@ -536,7 +575,6 @@ export default function App() {
     if (window.confirm(`คุณต้องการลบทริป "${currentTrip.trip_name}" ใช่หรือไม่?`)) {
       const targetTripId = currentTrip.trip_id;
       
-      // กวาดลบไฟล์ทั้งหมดในทริปออกจาก Storage
       (currentTrip.days || []).forEach(day => {
         (day.locations || []).forEach(loc => {
           if (loc.ticket_url) deleteFileFromStorage(loc.ticket_url);
@@ -593,7 +631,6 @@ export default function App() {
       const dayToDelete = currentTrip.days.find(d => d.day === dayNum);
       const deletedLocs = dayToDelete?.locations || [];
 
-      // ลบไฟล์ตั๋วทั้งหมดในวันนั้นออกจาก Storage
       deletedLocs.forEach(loc => {
         if (loc.ticket_url) deleteFileFromStorage(loc.ticket_url);
       });
@@ -637,7 +674,6 @@ export default function App() {
   const saveLocationData = (dayNum, locationData) => {
     if (!currentTrip) return;
 
-    // หากมีการเปลี่ยนไฟล์ใหม่ ลบไฟล์เก่าออกจาก Storage
     if (editingLocData?.ticket_url && locationData.ticket_url !== editingLocData.ticket_url) {
       deleteFileFromStorage(editingLocData.ticket_url);
     }
@@ -666,7 +702,6 @@ export default function App() {
   const deleteLocationData = (dayNum, locationId) => {
     if (!currentTrip) return;
 
-    // หาและลบไฟล์ที่แนบไว้กับสถานที่นี้
     const dayObj = currentTrip.days?.find(d => d.day === dayNum);
     const locToDelete = dayObj?.locations?.find(l => l.id === locationId);
     if (locToDelete?.ticket_url) {
@@ -766,6 +801,40 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased pb-16">
       <div className="max-w-md mx-auto min-h-screen bg-white dark:bg-slate-900/95 shadow-2xl relative border-x border-slate-200 dark:border-slate-800">
+
+        {/* Offline Warning Banner */}
+        {isOffline && (
+          <div className="bg-amber-600 text-white px-3 py-1.5 text-xs font-semibold flex items-center justify-between sticky top-0 z-40 shadow-md">
+            <div className="flex items-center gap-1.5">
+              <WifiOff className="w-3.5 h-3.5" />
+              <span>โหมดออฟไลน์: กำลังใช้งานจากข้อมูลในเครื่อง</span>
+            </div>
+            <button onClick={() => setIsOffline(false)} className="text-amber-200 hover:text-white">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* PWA Install Banner */}
+        {showInstallBanner && (
+          <div className="bg-rose-950/90 border-b border-rose-800/80 px-3 py-2 text-white flex items-center justify-between gap-2 text-xs sticky top-0 z-40">
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
+              <span>ติดตั้งแอปนี้ลงบนหน้าจอมือถือของคุณ</span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={handleInstallPWA}
+                className="bg-rose-500 hover:bg-rose-600 px-2.5 py-1 rounded-md font-bold text-white transition-colors"
+              >
+                ติดตั้ง
+              </button>
+              <button onClick={() => setShowInstallBanner(false)} className="p-1 text-slate-400 hover:text-white">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Top Multi-Trips Selector Bar */}
         <div className="bg-slate-950 text-white px-3 py-2 border-b border-slate-800 flex items-center justify-between gap-2">
@@ -1244,7 +1313,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Modal เพิ่ม/แก้ไข รายการสถานที่ (รวมปุ่มกวาดไฟล์ขยะตอนปิด Modal) */}
+        {/* Modal เพิ่ม/แก้ไข รายการสถานที่ */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-end justify-center p-4 z-50">
             <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-3 max-h-[90vh] overflow-y-auto">
@@ -1288,7 +1357,6 @@ export default function App() {
                   <input name="cost_info" defaultValue={editingLocData?.cost_info || ''} placeholder="หมายเหตุงบ (เช่น MTR)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
                 </div>
 
-                {/* ส่วนอัปโหลดเอกสาร */}
                 <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
                   <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
                     <Ticket className="w-3.5 h-3.5" /> แนบเอกสาร / ลิงก์ตั๋วเดินทาง
