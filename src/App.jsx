@@ -27,7 +27,8 @@ import {
   ExternalLink,
   FileText,
   DollarSign,
-  CheckSquare
+  CheckSquare,
+  Upload
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -143,7 +144,6 @@ const CATEGORY_MAP = {
   Shopping: { label: "ช้อปปิ้ง", color: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800", icon: ShoppingBag }
 };
 
-// เปลี่ยน Key เพื่อบังคับล้าง State เก่าที่อาจติดบั๊ก trip_name mutation
 const LOCAL_STORAGE_KEY = 'japan_travel_planner_store_v9';
 
 export default function App() {
@@ -162,6 +162,11 @@ export default function App() {
   const [editingLocData, setEditingLocData] = useState(null);
   const [targetDayNum, setTargetDayNum] = useState(1);
 
+  // States สำหรับการจัดการอัปโหลดไฟล์
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedTicketUrl, setUploadedTicketUrl] = useState('');
+  const [newlyUploadedUrls, setNewlyUploadedUrls] = useState([]);
+
   const saveTimeoutRef = useRef(null);
   const latestStoreRef = useRef(null);
 
@@ -170,6 +175,20 @@ export default function App() {
       return crypto.randomUUID();
     }
     return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // --- ฟังก์ชันช่วยเหลือในการลบไฟล์ออกจาก Supabase Storage ---
+  const deleteFileFromStorage = async (fileUrl) => {
+    if (!fileUrl || !fileUrl.includes('trip-attachments')) return;
+    try {
+      const urlParts = fileUrl.split('/trip-attachments/');
+      if (urlParts[1]) {
+        const filePath = decodeURIComponent(urlParts[1]);
+        await supabase.storage.from('trip-attachments').remove([filePath]);
+      }
+    } catch (err) {
+      console.warn("ลบไฟล์ขยะจาก Storage ไม่สำเร็จ:", err);
+    }
   };
 
   const pushToCloud = async (payload) => {
@@ -352,7 +371,66 @@ export default function App() {
     }, 1500);
   };
 
-  // สร้าง Blank Trip
+  // --- ฟังก์ชันการอัปโหลดไฟล์ขึ้น Supabase Storage ---
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("ขนาดไฟล์ต้องไม่เกิน 10MB");
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+
+      const targetTripId = currentTrip?.trip_id || activeTripId;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const filePath = `${targetTripId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('trip-attachments')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('trip-attachments')
+        .getPublicUrl(filePath);
+
+      if (publicUrlData?.publicUrl) {
+        // หากเป็นการอัปโหลดไฟล์ใหม่ทับของเดิม ลบไฟล์เก่าทิ้ง
+        if (uploadedTicketUrl && uploadedTicketUrl !== editingLocData?.ticket_url) {
+          await deleteFileFromStorage(uploadedTicketUrl);
+        }
+
+        const newUrl = publicUrlData.publicUrl;
+        setUploadedTicketUrl(newUrl);
+        setNewlyUploadedUrls(prev => [...prev, newUrl]);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert(`อัปโหลดไฟล์ไม่สำเร็จ: ${error.message || 'โปรดตรวจสอบสิทธิ์ Supabase Storage'}`);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  // ปิด Modal โดยกวาดลบไฟล์ขยะที่กดอัปโหลดเล่นแต่ไม่ได้บันทึก
+  const handleCloseModal = async () => {
+    if (newlyUploadedUrls.length > 0) {
+      for (const url of newlyUploadedUrls) {
+        if (url !== editingLocData?.ticket_url) {
+          await deleteFileFromStorage(url);
+        }
+      }
+    }
+    setNewlyUploadedUrls([]);
+    setUploadedTicketUrl('');
+    setIsModalOpen(false);
+  };
+
   const handleCreateBlankTrip = () => {
     const newTripId = `trip_${generateUUID()}`;
     const newBlankTrip = {
@@ -457,6 +535,14 @@ export default function App() {
 
     if (window.confirm(`คุณต้องการลบทริป "${currentTrip.trip_name}" ใช่หรือไม่?`)) {
       const targetTripId = currentTrip.trip_id;
+      
+      // กวาดลบไฟล์ทั้งหมดในทริปออกจาก Storage
+      (currentTrip.days || []).forEach(day => {
+        (day.locations || []).forEach(loc => {
+          if (loc.ticket_url) deleteFileFromStorage(loc.ticket_url);
+        });
+      });
+
       const remaining = tripsList.filter(t => t.trip_id !== targetTripId);
       const nextRealTrip = remaining.find(t => !t.is_template);
       const nextActiveId = nextRealTrip ? nextRealTrip.trip_id : remaining[0].trip_id;
@@ -474,12 +560,10 @@ export default function App() {
     }
   };
 
-  // --- การจัดการ วัน (Days) ---
   const handleAddNewDay = () => {
     if (!currentTrip) return;
 
     const currentDays = currentTrip.days || [];
-    // หาเลขวันล่าสุด ป้องกันปัญหากรณีมีการลบสลับวัน
     const newDayNum = currentDays.length > 0 ? Math.max(...currentDays.map(d => d.day)) + 1 : 1;
     const newDayObj = {
       day: newDayNum,
@@ -497,7 +581,7 @@ export default function App() {
     setActiveDay(newDayNum);
   };
 
-const handleDeleteDay = (dayNum) => {
+  const handleDeleteDay = (dayNum) => {
     if (!currentTrip) return;
 
     if (currentTrip.days.length <= 1) {
@@ -506,29 +590,29 @@ const handleDeleteDay = (dayNum) => {
     }
 
     if (window.confirm(`คุณต้องการลบ Day ${dayNum} และสถานที่ทั้งหมดในวันนี้ใช่หรือไม่?`)) {
-      // 1. ดึงรายการ ID ของสถานที่ในวันที่กำลังจะลบออกมาก่อน
       const dayToDelete = currentTrip.days.find(d => d.day === dayNum);
-      const deletedLocIds = (dayToDelete?.locations || []).map(l => l.id);
+      const deletedLocs = dayToDelete?.locations || [];
 
-      // 2. Re-index เลขวันใหม่
+      // ลบไฟล์ตั๋วทั้งหมดในวันนั้นออกจาก Storage
+      deletedLocs.forEach(loc => {
+        if (loc.ticket_url) deleteFileFromStorage(loc.ticket_url);
+      });
+
       const remainingDays = currentTrip.days
         .filter(d => d.day !== dayNum)
         .map((d, index) => ({ ...d, day: index + 1 }));
 
       const updatedTrip = { ...currentTrip, days: remainingDays };
 
-      // 3. ล้าง checkedState ของสถานที่ที่ถูกลบออกไปพร้อมกับวันนั้น
       const cleanedChecked = { ...checkedState };
-      deletedLocIds.forEach(locId => {
-        delete cleanedChecked[`${currentTrip.trip_id}_${locId}`];
+      deletedLocs.forEach(loc => {
+        delete cleanedChecked[`${currentTrip.trip_id}_${loc.id}`];
       });
       setCheckedState(cleanedChecked);
 
-      // 4. บันทึกข้อมูลลง Store
       const newList = tripsList.map(t => t.trip_id === updatedTrip.trip_id ? updatedTrip : t);
       saveAllToStore(newList, updatedTrip.trip_id, cleanedChecked);
 
-      // 5. ปรับ Active Tab
       if (activeDay === dayNum) {
         setActiveDay('all');
       } else if (activeDay !== 'all' && activeDay > dayNum) {
@@ -553,6 +637,11 @@ const handleDeleteDay = (dayNum) => {
   const saveLocationData = (dayNum, locationData) => {
     if (!currentTrip) return;
 
+    // หากมีการเปลี่ยนไฟล์ใหม่ ลบไฟล์เก่าออกจาก Storage
+    if (editingLocData?.ticket_url && locationData.ticket_url !== editingLocData.ticket_url) {
+      deleteFileFromStorage(editingLocData.ticket_url);
+    }
+
     const updatedDays = (currentTrip.days || []).map(day => {
       if (day.day !== dayNum) return day;
 
@@ -570,11 +659,19 @@ const handleDeleteDay = (dayNum) => {
 
     const updatedTrip = { ...currentTrip, days: updatedDays };
     updateCurrentTripData(updatedTrip);
+    setNewlyUploadedUrls([]);
     setIsModalOpen(false);
   };
 
   const deleteLocationData = (dayNum, locationId) => {
     if (!currentTrip) return;
+
+    // หาและลบไฟล์ที่แนบไว้กับสถานที่นี้
+    const dayObj = currentTrip.days?.find(d => d.day === dayNum);
+    const locToDelete = dayObj?.locations?.find(l => l.id === locationId);
+    if (locToDelete?.ticket_url) {
+      deleteFileFromStorage(locToDelete.ticket_url);
+    }
 
     const updatedDays = (currentTrip.days || []).map(day => {
       if (day.day !== dayNum) return day;
@@ -583,6 +680,7 @@ const handleDeleteDay = (dayNum) => {
 
     const updatedTrip = { ...currentTrip, days: updatedDays };
     updateCurrentTripData(updatedTrip);
+    setNewlyUploadedUrls([]);
     setIsModalOpen(false);
   };
 
@@ -622,7 +720,6 @@ const handleDeleteDay = (dayNum) => {
     });
   };
 
-  // --- การคำนวณงบประมาณและ Counter สถานที่ที่เช็กแล้ว ---
   const totalCostAmount = useMemo(() => {
     if (!currentTrip?.days) return 0;
     return currentTrip.days.reduce((accDay, d) => {
@@ -726,7 +823,6 @@ const handleDeleteDay = (dayNum) => {
                     {currentTrip?.trip_name}
                   </h1>
                   
-                  {/* Checklist Counter & Basic Trip Info */}
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-slate-400">
                       {currentTrip?.days?.length || 0} วัน
@@ -886,7 +982,13 @@ const handleDeleteDay = (dayNum) => {
                         </div>
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => { setTargetDayNum(dayData.day); setEditingLocData(null); setIsModalOpen(true); }}
+                            onClick={() => {
+                              setTargetDayNum(dayData.day);
+                              setEditingLocData(null);
+                              setUploadedTicketUrl('');
+                              setNewlyUploadedUrls([]);
+                              setIsModalOpen(true);
+                            }}
                             className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
                           >
                             <Plus className="w-3.5 h-3.5" /> เพิ่มสถานที่
@@ -925,7 +1027,16 @@ const handleDeleteDay = (dayNum) => {
                                 </div>
 
                                 <div className="flex items-center gap-1">
-                                  <button onClick={() => { setTargetDayNum(dayData.day); setEditingLocData(loc); setIsModalOpen(true); }} className="p-1 text-slate-400 hover:text-white">
+                                  <button
+                                    onClick={() => {
+                                      setTargetDayNum(dayData.day);
+                                      setEditingLocData(loc);
+                                      setUploadedTicketUrl(loc.ticket_url || '');
+                                      setNewlyUploadedUrls([]);
+                                      setIsModalOpen(true);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-white"
+                                  >
                                     <Pencil className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
@@ -947,18 +1058,20 @@ const handleDeleteDay = (dayNum) => {
                               )}
 
                               {(loc.ticket_url || loc.attachment_note) && (
-                                <div className="p-2 bg-slate-950/80 rounded-lg border border-slate-800 flex flex-col gap-1 text-xs">
+                                <div className="p-2 bg-slate-950/80 rounded-lg border border-slate-800 flex flex-col gap-1.5 text-xs">
                                   {loc.ticket_url && (
-                                    <a
-                                      href={loc.ticket_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium truncate"
-                                    >
-                                      <Ticket className="w-3.5 h-3.5 shrink-0" />
-                                      <span className="truncate">เปิดลิงก์ตั๋ว / เอกสารแนบ</span>
-                                      <ExternalLink className="w-3 h-3 shrink-0" />
-                                    </a>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <a
+                                        href={loc.ticket_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium truncate"
+                                      >
+                                        <Ticket className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="truncate">เปิดเอกสารแนบ / ตั๋วเดินทาง</span>
+                                        <ExternalLink className="w-3 h-3 shrink-0" />
+                                      </a>
+                                    </div>
                                   )}
                                   {loc.attachment_note && (
                                     <span className="text-slate-400 flex items-center gap-1 text-[11px]">
@@ -1064,7 +1177,7 @@ const handleDeleteDay = (dayNum) => {
           </div>
         )}
 
-        {/* Modal ตั้งค่างบประมาณทริป (Budget Modal) */}
+        {/* Modal ตั้งค่างบประมาณทริป */}
         {isBudgetModalOpen && currentTrip && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
             <div className="bg-slate-900 w-full max-w-sm p-4 rounded-2xl border border-slate-800 space-y-4">
@@ -1075,7 +1188,6 @@ const handleDeleteDay = (dayNum) => {
                 <button onClick={() => setIsBudgetModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
               </div>
 
-              {/* ✅ แก้ไข: ลบ onChange ออก และอ่านค่าจากฟอร์มตอน onSubmit ป้องกัน Direct Mutation */}
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const form = e.target;
@@ -1132,13 +1244,13 @@ const handleDeleteDay = (dayNum) => {
           </div>
         )}
 
-        {/* Modal เพิ่ม/แก้ไข รายการสถานที่ (รวมการแนบลิงก์/ตั๋ว) */}
+        {/* Modal เพิ่ม/แก้ไข รายการสถานที่ (รวมปุ่มกวาดไฟล์ขยะตอนปิด Modal) */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-end justify-center p-4 z-50">
             <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-3 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                 <h3 className="text-sm font-bold text-white">{editingLocData ? 'แก้ไขสถานที่' : 'เพิ่มสถานที่ใหม่'}</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
+                <button onClick={handleCloseModal} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
 
               <form onSubmit={(e) => {
@@ -1154,7 +1266,7 @@ const handleDeleteDay = (dayNum) => {
                   cost_info: form.cost_info.value,
                   category: form.category.value,
                   map_url: form.map_url.value,
-                  ticket_url: form.ticket_url.value,
+                  ticket_url: uploadedTicketUrl || form.ticket_url.value,
                   attachment_note: form.attachment_note.value
                 });
               }} className="space-y-2">
@@ -1176,18 +1288,77 @@ const handleDeleteDay = (dayNum) => {
                   <input name="cost_info" defaultValue={editingLocData?.cost_info || ''} placeholder="หมายเหตุงบ (เช่น MTR)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
                 </div>
 
+                {/* ส่วนอัปโหลดเอกสาร */}
                 <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
                   <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
                     <Ticket className="w-3.5 h-3.5" /> แนบเอกสาร / ลิงก์ตั๋วเดินทาง
                   </span>
-                  <input name="ticket_url" defaultValue={editingLocData?.ticket_url || ''} placeholder="URL ลิงก์ตั๋ว / e-Ticket (https://...)" className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
-                  <input name="attachment_note" defaultValue={editingLocData?.attachment_note || ''} placeholder="หมายเหตุการเก็บไฟล์ (เช่น อยู่ใน Google Drive / Email)" className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
+
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs p-2 rounded-lg border border-dashed border-slate-600 flex items-center justify-center gap-1.5 transition-colors">
+                      {uploadingFile ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                          <span>กำลังอัปโหลด...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5 text-rose-400" />
+                          <span>แนบไฟล์ตั๋ว/รูปภาพ (PDF, JPG, PNG)</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={handleFileUpload}
+                        disabled={uploadingFile}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {uploadedTicketUrl && (
+                    <div className="text-[10px] text-emerald-400 bg-emerald-950/50 p-1.5 rounded border border-emerald-800/40 flex items-center justify-between">
+                      <span className="truncate">✓ มีไฟล์แนบพร้อมใช้งาน</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (uploadedTicketUrl !== editingLocData?.ticket_url) {
+                            await deleteFileFromStorage(uploadedTicketUrl);
+                          }
+                          setUploadedTicketUrl('');
+                        }}
+                        className="text-slate-400 hover:text-rose-400 text-xs p-0.5"
+                        title="นำไฟล์แนบออก"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  <input
+                    name="ticket_url"
+                    value={uploadedTicketUrl}
+                    onChange={(e) => setUploadedTicketUrl(e.target.value)}
+                    placeholder="URL ลิงก์ตั๋ว / e-Ticket (https://...)"
+                    className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700"
+                  />
+                  <input
+                    name="attachment_note"
+                    defaultValue={editingLocData?.attachment_note || ''}
+                    placeholder="หมายเหตุการเก็บไฟล์ (เช่น อยู่ใน Google Drive / Email)"
+                    className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700"
+                  />
                 </div>
 
                 <input name="map_url" defaultValue={editingLocData?.map_url || ''} placeholder="ลิงก์ Google Maps (ถ้ามี)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
 
                 <div className="flex gap-2 pt-2">
-                  <button type="submit" className="flex-1 p-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
+                  <button
+                    type="submit"
+                    disabled={uploadingFile}
+                    className="flex-1 p-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-700 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors"
+                  >
                     <Save className="w-4 h-4" /> บันทึก
                   </button>
                   {editingLocData?.id && (
