@@ -22,7 +22,12 @@ import {
   X,
   Loader2,
   Globe,
-  FolderPlus
+  FolderPlus,
+  Ticket,
+  ExternalLink,
+  FileText,
+  DollarSign,
+  CheckSquare
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -32,6 +37,7 @@ const PRESET_TEMPLATES = [
     trip_id: "preset_tokyo_fuji",
     trip_name: "Japan (Tokyo & Fuji)",
     currency: "JPY",
+    total_budget: 150000,
     is_template: true,
     days: [
       {
@@ -50,7 +56,8 @@ const PRESET_TEMPLATES = [
             category: "Transport",
             lat: 35.7647,
             lng: 140.3863,
-            ticket_url: "",
+            ticket_url: "https://www.keisei.co.jp/",
+            attachment_note: "E-ticket อยู่ใน Gmail",
             map_url: ""
           },
           {
@@ -60,11 +67,12 @@ const PRESET_TEMPLATES = [
             location_name: "สถานี Keisei-Ueno",
             transport_detail: "นั่งรถไฟด่วน Keisei Skyliner (41 นาที)",
             cost_info: "[ใช้ตั๋ว Skyliner ขาไป]",
-            cost_amount: 0,
+            cost_amount: 2500,
             category: "Transit",
             lat: 35.7112,
             lng: 139.7745,
             ticket_url: "",
+            attachment_note: "",
             map_url: ""
           }
         ]
@@ -86,6 +94,7 @@ const PRESET_TEMPLATES = [
             lat: 35.6654,
             lng: 139.7707,
             ticket_url: "",
+            attachment_note: "",
             map_url: ""
           }
         ]
@@ -96,6 +105,7 @@ const PRESET_TEMPLATES = [
     trip_id: "preset_hong_kong",
     trip_name: "Hong Kong Express (3 Days)",
     currency: "HKD",
+    total_budget: 5000,
     is_template: true,
     days: [
       {
@@ -115,6 +125,7 @@ const PRESET_TEMPLATES = [
             lat: 22.2988,
             lng: 114.1722,
             ticket_url: "",
+            attachment_note: "",
             map_url: ""
           }
         ]
@@ -132,20 +143,22 @@ const CATEGORY_MAP = {
   Shopping: { label: "ช้อปปิ้ง", color: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800", icon: ShoppingBag }
 };
 
-const LOCAL_STORAGE_KEY = 'japan_travel_planner_store_v7';
+// เปลี่ยน Key เพื่อบังคับล้าง State เก่าที่อาจติดบั๊ก trip_name mutation
+const LOCAL_STORAGE_KEY = 'japan_travel_planner_store_v9';
 
 export default function App() {
   const [tripsList, setTripsList] = useState([]);
   const [activeTripId, setActiveTripId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeDay, setActiveDay] = useState(1);
+  const [activeDay, setActiveDay] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [checkedState, setCheckedState] = useState({});
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [editingLocData, setEditingLocData] = useState(null);
   const [targetDayNum, setTargetDayNum] = useState(1);
 
@@ -262,6 +275,7 @@ export default function App() {
           trip_id: `trip_${generateUUID()}`,
           trip_name: `${PRESET_TEMPLATES[0].trip_name} (My Trip)`,
           is_template: false,
+          total_budget: 100000,
           days: PRESET_TEMPLATES[0].days.map(day => ({
             ...day,
             locations: (day.locations || []).map(loc => ({ ...loc, id: generateUUID() }))
@@ -307,7 +321,7 @@ export default function App() {
 
   const handleSelectTrip = (tripId) => {
     setActiveTripId(tripId);
-    setActiveDay(1);
+    setActiveDay('all');
     saveAllToStore(tripsList, tripId, checkedState);
   };
 
@@ -338,6 +352,32 @@ export default function App() {
     }, 1500);
   };
 
+  // สร้าง Blank Trip
+  const handleCreateBlankTrip = () => {
+    const newTripId = `trip_${generateUUID()}`;
+    const newBlankTrip = {
+      trip_id: newTripId,
+      trip_name: "ทริปใหม่ของฉัน",
+      currency: "THB",
+      total_budget: 0,
+      is_template: false,
+      days: [
+        {
+          day: 1,
+          title: "Day 1",
+          subtitle: "เริ่มต้นการเดินทาง",
+          locations: []
+        }
+      ]
+    };
+
+    const updatedList = [...tripsList, newBlankTrip];
+    setActiveTripId(newTripId);
+    setActiveDay('all');
+    setIsTemplateModalOpen(false);
+    saveAllToStore(updatedList, newTripId);
+  };
+
   const handleCreateNewTripFromTemplate = (templateObj) => {
     const newTripId = `trip_${generateUUID()}`;
 
@@ -359,7 +399,7 @@ export default function App() {
 
     const updatedList = [...tripsList, newTrip];
     setActiveTripId(newTripId);
-    setActiveDay(1);
+    setActiveDay('all');
     setIsTemplateModalOpen(false);
     saveAllToStore(updatedList, newTripId);
   };
@@ -431,6 +471,69 @@ export default function App() {
       setCheckedState(cleanedChecked);
       setActiveTripId(nextActiveId);
       saveAllToStore(remaining, nextActiveId, cleanedChecked);
+    }
+  };
+
+  // --- การจัดการ วัน (Days) ---
+  const handleAddNewDay = () => {
+    if (!currentTrip) return;
+
+    const currentDays = currentTrip.days || [];
+    // หาเลขวันล่าสุด ป้องกันปัญหากรณีมีการลบสลับวัน
+    const newDayNum = currentDays.length > 0 ? Math.max(...currentDays.map(d => d.day)) + 1 : 1;
+    const newDayObj = {
+      day: newDayNum,
+      title: `Day ${newDayNum}`,
+      subtitle: "กิจกรรมประจำวัน",
+      locations: []
+    };
+
+    const updatedTrip = {
+      ...currentTrip,
+      days: [...currentDays, newDayObj]
+    };
+
+    updateCurrentTripData(updatedTrip);
+    setActiveDay(newDayNum);
+  };
+
+const handleDeleteDay = (dayNum) => {
+    if (!currentTrip) return;
+
+    if (currentTrip.days.length <= 1) {
+      alert("ทริปต้องมีอย่างน้อย 1 วัน ไม่สามารถลบวันสุดท้ายได้");
+      return;
+    }
+
+    if (window.confirm(`คุณต้องการลบ Day ${dayNum} และสถานที่ทั้งหมดในวันนี้ใช่หรือไม่?`)) {
+      // 1. ดึงรายการ ID ของสถานที่ในวันที่กำลังจะลบออกมาก่อน
+      const dayToDelete = currentTrip.days.find(d => d.day === dayNum);
+      const deletedLocIds = (dayToDelete?.locations || []).map(l => l.id);
+
+      // 2. Re-index เลขวันใหม่
+      const remainingDays = currentTrip.days
+        .filter(d => d.day !== dayNum)
+        .map((d, index) => ({ ...d, day: index + 1 }));
+
+      const updatedTrip = { ...currentTrip, days: remainingDays };
+
+      // 3. ล้าง checkedState ของสถานที่ที่ถูกลบออกไปพร้อมกับวันนั้น
+      const cleanedChecked = { ...checkedState };
+      deletedLocIds.forEach(locId => {
+        delete cleanedChecked[`${currentTrip.trip_id}_${locId}`];
+      });
+      setCheckedState(cleanedChecked);
+
+      // 4. บันทึกข้อมูลลง Store
+      const newList = tripsList.map(t => t.trip_id === updatedTrip.trip_id ? updatedTrip : t);
+      saveAllToStore(newList, updatedTrip.trip_id, cleanedChecked);
+
+      // 5. ปรับ Active Tab
+      if (activeDay === dayNum) {
+        setActiveDay('all');
+      } else if (activeDay !== 'all' && activeDay > dayNum) {
+        setActiveDay(activeDay - 1);
+      }
     }
   };
 
@@ -519,12 +622,40 @@ export default function App() {
     });
   };
 
+  // --- การคำนวณงบประมาณและ Counter สถานที่ที่เช็กแล้ว ---
   const totalCostAmount = useMemo(() => {
     if (!currentTrip?.days) return 0;
     return currentTrip.days.reduce((accDay, d) => {
       return accDay + (d.locations || []).reduce((accLoc, loc) => accLoc + (Number(loc.cost_amount) || 0), 0);
     }, 0);
   }, [currentTrip]);
+
+  const checklistProgress = useMemo(() => {
+    if (!currentTrip?.days) return { completed: 0, total: 0 };
+
+    let targetLocations = [];
+    if (activeDay === 'all') {
+      currentTrip.days.forEach(d => {
+        targetLocations.push(...(d.locations || []));
+      });
+    } else {
+      const dayObj = currentTrip.days.find(d => d.day === activeDay);
+      if (dayObj) targetLocations = dayObj.locations || [];
+    }
+
+    const total = targetLocations.length;
+    const completed = targetLocations.filter(loc => {
+      const checkKey = `${currentTrip.trip_id}_${loc.id}`;
+      return !!checkedState[checkKey];
+    }).length;
+
+    return { completed, total };
+  }, [currentTrip, activeDay, checkedState]);
+
+  const remainingBudget = (currentTrip?.total_budget || 0) - totalCostAmount;
+  const budgetPercentage = currentTrip?.total_budget > 0
+    ? Math.min(Math.round((totalCostAmount / currentTrip.total_budget) * 100), 100)
+    : 0;
 
   if (loading) {
     return (
@@ -575,7 +706,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* กรณีไม่มีทริปจริงเหลืออยู่เลย */}
         {!currentTrip ? (
           <div className="p-10 text-center text-slate-400 text-sm space-y-3">
             <p>ยังไม่มีทริป</p>
@@ -583,7 +713,7 @@ export default function App() {
               onClick={() => setIsTemplateModalOpen(true)}
               className="px-4 py-2 bg-rose-500 text-white rounded-lg text-xs font-bold"
             >
-              เริ่มจากแม่แบบ
+              เริ่มสร้างทริปใหม่
             </button>
           </div>
         ) : (
@@ -595,12 +725,21 @@ export default function App() {
                   <h1 className="text-base font-bold text-white flex items-center gap-1.5">
                     {currentTrip?.trip_name}
                   </h1>
-                  <p className="text-xs text-slate-400">
-                    {currentTrip?.days?.length || 0} วัน | งบประมาณ {totalCostAmount.toLocaleString()} {currentTrip?.currency || 'THB'}
-                  </p>
+                  
+                  {/* Checklist Counter & Basic Trip Info */}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-400">
+                      {currentTrip?.days?.length || 0} วัน
+                    </span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                      <CheckSquare className="w-3 h-3" />
+                      {checklistProgress.completed} / {checklistProgress.total} สำเร็จ
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={handleSaveAsPersonalTemplate}
                     className="text-[10px] bg-slate-800 hover:bg-slate-700 text-rose-400 px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1"
@@ -616,7 +755,44 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Days Tabs */}
+              {/* Budget Overview Widget */}
+              <div className="px-4 py-2 bg-slate-950/70 border-t border-slate-800/80 flex flex-col gap-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-1 text-slate-300">
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ใช้ไป: <strong className="text-amber-400">{totalCostAmount.toLocaleString()}</strong> {currentTrip?.currency || 'THB'}</span>
+                  </div>
+
+                  <button
+                    onClick={() => setIsBudgetModalOpen(true)}
+                    className="text-[11px] text-slate-400 hover:text-white underline flex items-center gap-1"
+                  >
+                    <DollarSign className="w-3 h-3 text-rose-400" />
+                    <span>งบ: {currentTrip?.total_budget ? currentTrip.total_budget.toLocaleString() : 'ยังไม่ตั้ง'}</span>
+                  </button>
+                </div>
+
+                {currentTrip?.total_budget > 0 && (
+                  <div className="space-y-1">
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${
+                          remainingBudget < 0 ? 'bg-rose-500' : budgetPercentage > 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-400">คงเหลือ:</span>
+                      <span className={`font-bold ${remainingBudget < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        {remainingBudget.toLocaleString()} {currentTrip?.currency || 'THB'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Days Tabs + ปุ่มเพิ่มวัน */}
               <div className="px-2 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 <button
                   onClick={() => setActiveDay('all')}
@@ -637,6 +813,15 @@ export default function App() {
                     Day {d.day}
                   </button>
                 ))}
+                
+                <button
+                  onClick={handleAddNewDay}
+                  className="px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold whitespace-nowrap bg-slate-800 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 transition-colors flex items-center gap-1"
+                  title="เพิ่มวันใหม่"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>เพิ่มวัน</span>
+                </button>
               </div>
             </header>
 
@@ -699,17 +884,27 @@ export default function App() {
                           <span className="text-xs font-bold text-rose-400">Day {dayData.day}</span>
                           <h2 className="text-sm font-bold text-white">{dayData.title}</h2>
                         </div>
-                        <button
-                          onClick={() => { setTargetDayNum(dayData.day); setEditingLocData(null); setIsModalOpen(true); }}
-                          className="p-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
-                        >
-                          <Plus className="w-4 h-4" /> เพิ่ม
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => { setTargetDayNum(dayData.day); setEditingLocData(null); setIsModalOpen(true); }}
+                            className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> เพิ่มสถานที่
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDeleteDay(dayData.day)}
+                            className="p-1.5 bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-lg text-xs transition-colors"
+                            title={`ลบ Day ${dayData.day}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       {filteredLocs.length === 0 ? (
                         <div className="text-center py-6 bg-slate-900/50 border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs">
-                          ไม่พบสถานที่ตามคำค้นหา
+                          ยังไม่มีสถานที่ในวันนี้
                         </div>
                       ) : (
                         filteredLocs.map((loc) => {
@@ -749,6 +944,29 @@ export default function App() {
                                   <Compass className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
                                   <span>{loc.transport_detail}</span>
                                 </p>
+                              )}
+
+                              {(loc.ticket_url || loc.attachment_note) && (
+                                <div className="p-2 bg-slate-950/80 rounded-lg border border-slate-800 flex flex-col gap-1 text-xs">
+                                  {loc.ticket_url && (
+                                    <a
+                                      href={loc.ticket_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium truncate"
+                                    >
+                                      <Ticket className="w-3.5 h-3.5 shrink-0" />
+                                      <span className="truncate">เปิดลิงก์ตั๋ว / เอกสารแนบ</span>
+                                      <ExternalLink className="w-3 h-3 shrink-0" />
+                                    </a>
+                                  )}
+                                  {loc.attachment_note && (
+                                    <span className="text-slate-400 flex items-center gap-1 text-[11px]">
+                                      <FileText className="w-3 h-3 text-slate-500 shrink-0" />
+                                      <span>{loc.attachment_note}</span>
+                                    </span>
+                                  )}
+                                </div>
                               )}
 
                               {loc.cost_amount > 0 && (
@@ -797,19 +1015,34 @@ export default function App() {
           </>
         )}
 
-        {/* Modal เลือก Template */}
+        {/* Modal เลือก Template / สร้างทริปใหม่ */}
         {isTemplateModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center p-4 z-50">
             <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-4">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <FolderPlus className="w-4 h-4 text-rose-500" /> เลือกแม่แบบสำหรับทริปใหม่
+                  <FolderPlus className="w-4 h-4 text-rose-500" /> เพิ่มทริปใหม่
                 </h3>
                 <button onClick={() => setIsTemplateModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                <p className="text-xs text-slate-400 mb-2">เลือกจากแม่แบบสำเร็จรูป หรือแม่แบบส่วนตัวของคุณ:</p>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="p-3 bg-rose-950/30 border border-rose-800/50 rounded-xl flex items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-rose-300">สร้างทริปใหม่เปล่าๆ (Blank Trip)</h4>
+                    <p className="text-[10px] text-slate-400">สร้างทริปจากหน้ากระดาษเปล่า ไม่ใช้แม่แบบ</p>
+                  </div>
+                  <button
+                    onClick={handleCreateBlankTrip}
+                    className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                  >
+                    + สร้างทริปเปล่า
+                  </button>
+                </div>
+
+                <hr className="border-slate-800" />
+
+                <p className="text-xs text-slate-400">หรือเลือกจากแม่แบบสำเร็จรูป / แม่แบบส่วนตัว:</p>
                 {tripsList
                   .filter(t => t.is_template)
                   .map((tpl) => (
@@ -820,7 +1053,7 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => handleCreateNewTripFromTemplate(tpl)}
-                        className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-colors"
+                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
                       >
                         ใช้แม่แบบนี้
                       </button>
@@ -831,10 +1064,78 @@ export default function App() {
           </div>
         )}
 
-        {/* Modal เพิ่ม/แก้ไข รายการสถานที่ */}
+        {/* Modal ตั้งค่างบประมาณทริป (Budget Modal) */}
+        {isBudgetModalOpen && currentTrip && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-900 w-full max-w-sm p-4 rounded-2xl border border-slate-800 space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-400" /> ตั้งค่างบประมาณทริป
+                </h3>
+                <button onClick={() => setIsBudgetModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
+              </div>
+
+              {/* ✅ แก้ไข: ลบ onChange ออก และอ่านค่าจากฟอร์มตอน onSubmit ป้องกัน Direct Mutation */}
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newBudget = Number(form.total_budget.value) || 0;
+                const newCurrency = form.currency.value || 'THB';
+                const newTripName = form.trip_name.value.trim() || currentTrip.trip_name;
+
+                const updatedTrip = {
+                  ...currentTrip,
+                  trip_name: newTripName,
+                  total_budget: newBudget,
+                  currency: newCurrency
+                };
+
+                updateCurrentTripData(updatedTrip);
+                setIsBudgetModalOpen(false);
+              }} className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">ชื่อทริป</label>
+                  <input
+                    name="trip_name"
+                    defaultValue={currentTrip.trip_name}
+                    className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">งบประมาณรวม</label>
+                    <input
+                      name="total_budget"
+                      type="number"
+                      defaultValue={currentTrip.total_budget || 0}
+                      className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">สกุลเงิน</label>
+                    <input
+                      name="currency"
+                      defaultValue={currentTrip.currency || 'THB'}
+                      placeholder="เช่น JPY, THB"
+                      className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="w-full p-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
+                  <Save className="w-4 h-4" /> บันทึกการตั้งค่า
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal เพิ่ม/แก้ไข รายการสถานที่ (รวมการแนบลิงก์/ตั๋ว) */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-end justify-center p-4 z-50">
-            <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-3 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                 <h3 className="text-sm font-bold text-white">{editingLocData ? 'แก้ไขสถานที่' : 'เพิ่มสถานที่ใหม่'}</h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
@@ -852,7 +1153,9 @@ export default function App() {
                   cost_amount: Number(form.cost_amount.value) || 0,
                   cost_info: form.cost_info.value,
                   category: form.category.value,
-                  map_url: form.map_url.value
+                  map_url: form.map_url.value,
+                  ticket_url: form.ticket_url.value,
+                  attachment_note: form.attachment_note.value
                 });
               }} className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -869,8 +1172,16 @@ export default function App() {
                 <textarea name="transport_detail" defaultValue={editingLocData?.transport_detail || ''} placeholder="รายละเอียดการเดินทาง..." className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700 h-16" />
 
                 <div className="grid grid-cols-2 gap-3">
-                  <input name="cost_amount" type="number" defaultValue={editingLocData?.cost_amount || 0} placeholder="ราคา" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                  <input name="cost_amount" type="number" defaultValue={editingLocData?.cost_amount || 0} placeholder="ประมาณการราคา" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
                   <input name="cost_info" defaultValue={editingLocData?.cost_info || ''} placeholder="หมายเหตุงบ (เช่น MTR)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                </div>
+
+                <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
+                  <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
+                    <Ticket className="w-3.5 h-3.5" /> แนบเอกสาร / ลิงก์ตั๋วเดินทาง
+                  </span>
+                  <input name="ticket_url" defaultValue={editingLocData?.ticket_url || ''} placeholder="URL ลิงก์ตั๋ว / e-Ticket (https://...)" className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                  <input name="attachment_note" defaultValue={editingLocData?.attachment_note || ''} placeholder="หมายเหตุการเก็บไฟล์ (เช่น อยู่ใน Google Drive / Email)" className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
                 </div>
 
                 <input name="map_url" defaultValue={editingLocData?.map_url || ''} placeholder="ลิงก์ Google Maps (ถ้ามี)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
