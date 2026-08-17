@@ -30,7 +30,12 @@ import {
   CheckSquare,
   Upload,
   WifiOff,
-  Download
+  Download,
+  User,
+  LogOut,
+  LogIn,
+  UserPlus,
+  Lock
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -158,6 +163,16 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [checkedState, setCheckedState] = useState({});
 
+  // Auth States
+  const [sessionUser, setSessionUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  // UI Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -197,14 +212,19 @@ export default function App() {
     }
   };
 
+  // Push Data to Cloud (ผูก user_id ในตาราง user_trips)
   const pushToCloud = async (payload) => {
-    if (!navigator.onLine) {
+    if (!navigator.onLine || !sessionUser) {
       setSaving(false);
       return;
     }
     try {
       setSaving(true);
-      await supabase.from('trip_data').upsert({ id: 1, data: payload });
+      await supabase.from('user_trips').upsert({
+        user_id: sessionUser.id,
+        data: payload,
+        updated_at: payload.updated_at || Date.now()
+      }, { onConflict: 'user_id' });
     } catch (err) {
       console.error("Cloud push failed:", err);
     } finally {
@@ -212,9 +232,22 @@ export default function App() {
     }
   };
 
+  // ตรวจจับ Auth Session & Network Status
   useEffect(() => {
-    initApp();
+    // 1. ตรวจสอบการล็อกอิน
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user || null;
+      setSessionUser(currentUser);
+      initApp(currentUser);
+    });
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user || null;
+      setSessionUser(currentUser);
+      initApp(currentUser);
+    });
+
+    // 2. Network Events
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
@@ -232,7 +265,7 @@ export default function App() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-        if (latestStoreRef.current) {
+        if (latestStoreRef.current && sessionUser) {
           pushToCloud(latestStoreRef.current);
         }
       }
@@ -241,6 +274,7 @@ export default function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      subscription?.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -259,7 +293,44 @@ export default function App() {
     setDeferredPrompt(null);
   };
 
-  const initApp = async () => {
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      if (authMode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword,
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+        });
+        if (error) throw error;
+        alert("ลงทะเบียนสำเร็จ! กรุณาเช็กอีเมลเพื่อยืนยันบัญชี (หากเปิดระบบ Email Confirm ไว้)");
+      }
+      setIsAuthModalOpen(false);
+      setAuthEmail('');
+      setAuthPassword('');
+    } catch (err) {
+      setAuthError(err.message || 'เกิดข้อผิดพลาดในการยืนยันตัวตน');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (window.confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
+      await supabase.auth.signOut();
+      setSessionUser(null);
+    }
+  };
+
+  const initApp = async (user = sessionUser) => {
     setLoading(true);
     let localData = null;
 
@@ -284,17 +355,18 @@ export default function App() {
       setLoading(false);
     }
 
-    if (!navigator.onLine) {
+    if (!user || !navigator.onLine) {
       setLoading(false);
       return;
     }
 
+    // ดึงข้อมูลทริปเฉพาะของ User ที่ล็อกอินจาก user_trips
     try {
       const { data } = await supabase
-        .from('trip_data')
+        .from('user_trips')
         .select('data')
-        .eq('id', 1)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       if (data && data.data && Array.isArray(data.data.trips) && data.data.trips.length > 0) {
         const cloudPayload = data.data;
@@ -325,7 +397,6 @@ export default function App() {
           latestStoreRef.current = syncedLocal;
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(syncedLocal));
         } else {
-          console.log("Local data is newer than Cloud data. Syncing local to cloud...");
           if (latestStoreRef.current) {
             pushToCloud(latestStoreRef.current);
           }
@@ -357,7 +428,7 @@ export default function App() {
         await pushToCloud(initialStore);
       }
     } catch (err) {
-      console.warn("Could not sync with Supabase (Offline mode active):", err);
+      console.warn("Could not sync user trips from Supabase:", err);
     } finally {
       setLoading(false);
     }
@@ -802,6 +873,40 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased pb-16">
       <div className="max-w-md mx-auto min-h-screen bg-white dark:bg-slate-900/95 shadow-2xl relative border-x border-slate-200 dark:border-slate-800">
 
+        {/* User Auth Status Bar */}
+        <div className="bg-slate-900 text-slate-300 px-3 py-1.5 border-b border-slate-800/80 flex items-center justify-between text-xs">
+          {sessionUser ? (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 truncate">
+                <User className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="truncate text-slate-200 font-medium">{sessionUser.email}</span>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="text-slate-400 hover:text-rose-400 flex items-center gap-1 ml-2 shrink-0 transition-colors"
+                title="ออกจากระบบ"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>ออก</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <span className="text-slate-400 text-[11px]">โหมด Guest (บันทึกเฉพาะในเครื่อง)</span>
+              <button
+                onClick={() => {
+                  setAuthMode('login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1 transition-colors"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>เข้าสู่ระบบ / สมัคร</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Offline Warning Banner */}
         {isOffline && (
           <div className="bg-amber-600 text-white px-3 py-1.5 text-xs font-semibold flex items-center justify-between sticky top-0 z-40 shadow-md">
@@ -1195,6 +1300,74 @@ export default function App() {
                 })}
             </main>
           </>
+        )}
+
+        {/* Modal Auth (Sign In / Sign Up) */}
+        {isAuthModalOpen && (
+          <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-900 w-full max-w-sm p-5 rounded-2xl border border-slate-800 space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  {authMode === 'login' ? <LogIn className="w-4 h-4 text-rose-500" /> : <UserPlus className="w-4 h-4 text-rose-500" />}
+                  <span>{authMode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิกใหม่'}</span>
+                </h3>
+                <button onClick={() => setIsAuthModalOpen(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+
+              {authError && (
+                <div className="p-2.5 bg-rose-950/80 border border-rose-800/80 rounded-lg text-rose-300 text-xs">
+                  {authError}
+                </div>
+              )}
+
+              <form onSubmit={handleAuthSubmit} className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">อีเมล</label>
+                  <input
+                    type="email"
+                    required
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700 outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">รหัสผ่าน</label>
+                  <input
+                    type="password"
+                    required
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร"
+                    className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700 outline-none focus:border-rose-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full p-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-800 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1.5 transition-colors"
+                >
+                  {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (authMode === 'login' ? 'เข้าสู่ระบบ' : 'ลงทะเบียน')}
+                </button>
+              </form>
+
+              <div className="text-center pt-2 border-t border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                    setAuthError('');
+                  }}
+                  className="text-xs text-slate-400 hover:text-rose-400 underline transition-colors"
+                >
+                  {authMode === 'login' ? 'ยังไม่มีบัญชี? สมัครสมาชิกใหม่ที่นี่' : 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบที่นี่'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Modal เลือก Template / สร้างทริปใหม่ */}
