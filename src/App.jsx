@@ -148,12 +148,12 @@ const PRESET_TEMPLATES = [
 ];
 
 const CATEGORY_MAP = {
-  Sightseeing: { label: "ท่องเที่ยว", color: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800", icon: Camera },
-  Food: { label: "อาหาร/กิน", color: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800", icon: Utensils },
-  Transit: { label: "ต่อรถไฟ", color: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800", icon: Train },
-  Transport: { label: "เดินทางหลัก", color: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800", icon: Bus },
-  Hotel: { label: "โรงแรม", color: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", icon: Building },
-  Shopping: { label: "ช้อปปิ้ง", color: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800", icon: ShoppingBag }
+  Sightseeing: { label: "ท่องเที่ยว", color: "bg-neutral-800 text-neutral-300 border-neutral-700", icon: Camera },
+  Food: { label: "อาหาร/กิน", color: "bg-neutral-800 text-neutral-300 border-neutral-700", icon: Utensils },
+  Transit: { label: "ต่อรถไฟ", color: "bg-neutral-800 text-neutral-300 border-neutral-700", icon: Train },
+  Transport: { label: "เดินทางหลัก", color: "bg-neutral-800 text-neutral-300 border-neutral-700", icon: Bus },
+  Hotel: { label: "โรงแรม", color: "bg-neutral-800 text-neutral-300 border-neutral-700", icon: Building },
+  Shopping: { label: "ช้อปปิ้ง", color: "bg-neutral-800 text-neutral-300 border-neutral-700", icon: ShoppingBag }
 };
 
 const LOCAL_STORAGE_KEY = 'japan_travel_planner_store_v10';
@@ -1088,30 +1088,30 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4 font-sans">
-        <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
-        <p className="text-slate-400 text-sm">กำลังเชื่อมต่อคลังทริปท่องเที่ยว...</p>
+      <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 font-sans">
+        <Loader2 className="w-10 h-10 animate-spin text-pink-500 mb-4" />
+        <p className="text-neutral-400 text-sm">กำลังเชื่อมต่อคลังทริปท่องเที่ยว...</p>
       </div>
     );
   }
 
   if (sharedToken && sharedTripError) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4 font-sans text-center gap-3">
-        <Ban className="w-10 h-10 text-rose-500" />
-        <p className="text-slate-300 text-sm">{sharedTripError}</p>
-        <a href="/" className="text-rose-400 text-xs underline">กลับไปหน้าแรก</a>
+      <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 font-sans text-center gap-3">
+        <Ban className="w-10 h-10 text-pink-500" />
+        <p className="text-neutral-300 text-sm">{sharedTripError}</p>
+        <a href="/" className="text-pink-400 text-xs underline">กลับไปหน้าแรก</a>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased pb-16">
-      <div className="max-w-md mx-auto min-h-screen bg-white dark:bg-slate-900/95 shadow-2xl relative border-x border-slate-200 dark:border-slate-800">
+    <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-100 font-sans antialiased pb-16">
+      <div className="max-w-md mx-auto min-h-screen bg-white dark:bg-neutral-900/95 shadow-2xl relative border-x border-neutral-200 dark:border-neutral-800">
 
         {/* Shared-link mode banner */}
         {sharedTripMode && (
-          <div className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 sticky top-0 z-40 shadow-md ${isReadOnly ? 'bg-sky-700 text-white' : 'bg-emerald-700 text-white'}`}>
+          <div className={`px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 sticky top-0 z-40 shadow-md ${isReadOnly ? 'bg-neutral-700 text-white' : 'bg-pink-700 text-white'}`}>
             {isReadOnly ? <Eye className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
             <span>กำลังดูทริปที่ถูกแชร์ ({isReadOnly ? 'ดูอย่างเดียว' : 'แก้ไขได้'})</span>
           </div>
@@ -1119,21 +1119,21 @@ export default function App() {
 
         {/* User Auth Status Bar (ซ่อนตอนอยู่ในโหมด shared link) */}
         {!sharedTripMode && (
-          <div className="bg-slate-900 text-slate-300 px-3 py-1.5 border-b border-slate-800/80 flex items-center justify-between text-xs">
+          <div className="bg-neutral-900 text-neutral-300 px-3 py-1.5 border-b border-neutral-800/80 flex items-center justify-between text-xs">
             {sessionUser ? (
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-1.5 truncate">
-                  <User className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                  <span className="truncate text-slate-200 font-medium">{sessionUser.email}</span>
+                  <User className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                  <span className="truncate text-neutral-200 font-medium">{sessionUser.email}</span>
                 </div>
-                <button onClick={handleSignOut} className="text-slate-400 hover:text-rose-400 flex items-center gap-1 ml-2 shrink-0 transition-colors" title="ออกจากระบบ">
+                <button onClick={handleSignOut} className="text-neutral-400 hover:text-pink-400 flex items-center gap-1 ml-2 shrink-0 transition-colors" title="ออกจากระบบ">
                   <LogOut className="w-3.5 h-3.5" />
                   <span>ออก</span>
                 </button>
               </div>
             ) : (
               <div className="flex items-center justify-between w-full">
-                <span className="text-slate-400 text-[11px]">โหมด Guest (บันทึกเฉพาะในเครื่อง)</span>
+                <span className="text-neutral-400 text-[11px]">โหมด Guest (บันทึกเฉพาะในเครื่อง)</span>
                 <button
                   onClick={() => {
                     setAuthMode('login');
@@ -1141,7 +1141,7 @@ export default function App() {
                     setAuthInfo('');
                     setIsAuthModalOpen(true);
                   }}
-                  className="text-rose-400 hover:text-rose-300 font-bold flex items-center gap-1 transition-colors"
+                  className="text-pink-400 hover:text-pink-300 font-bold flex items-center gap-1 transition-colors"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>เข้าสู่ระบบ / สมัคร</span>
@@ -1153,12 +1153,12 @@ export default function App() {
 
         {/* Offline Warning Banner */}
         {isOffline && (
-          <div className="bg-amber-600 text-white px-3 py-1.5 text-xs font-semibold flex items-center justify-between sticky top-0 z-40 shadow-md">
+          <div className="bg-neutral-800 text-white px-3 py-1.5 text-xs font-semibold flex items-center justify-between sticky top-0 z-40 shadow-md border-b border-neutral-700">
             <div className="flex items-center gap-1.5">
               <WifiOff className="w-3.5 h-3.5" />
               <span>โหมดออฟไลน์: กำลังใช้งานจากข้อมูลในเครื่อง</span>
             </div>
-            <button onClick={() => setIsOffline(false)} className="text-amber-200 hover:text-white">
+            <button onClick={() => setIsOffline(false)} className="text-neutral-400 hover:text-white">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1166,16 +1166,16 @@ export default function App() {
 
         {/* PWA Install Banner */}
         {showInstallBanner && (
-          <div className="bg-rose-950/90 border-b border-rose-800/80 px-3 py-2 text-white flex items-center justify-between gap-2 text-xs sticky top-0 z-40">
+          <div className="bg-pink-950/90 border-b border-pink-800/80 px-3 py-2 text-white flex items-center justify-between gap-2 text-xs sticky top-0 z-40">
             <div className="flex items-center gap-2">
-              <Download className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
+              <Download className="w-4 h-4 text-pink-400 shrink-0 animate-bounce" />
               <span>ติดตั้งแอปนี้ลงบนหน้าจอมือถือของคุณ</span>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <button onClick={handleInstallPWA} className="bg-rose-500 hover:bg-rose-600 px-2.5 py-1 rounded-md font-bold text-white transition-colors">
+              <button onClick={handleInstallPWA} className="bg-pink-500 hover:bg-pink-600 px-2.5 py-1 rounded-md font-bold text-white transition-colors">
                 ติดตั้ง
               </button>
-              <button onClick={() => setShowInstallBanner(false)} className="p-1 text-slate-400 hover:text-white">
+              <button onClick={() => setShowInstallBanner(false)} className="p-1 text-neutral-400 hover:text-white">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1184,13 +1184,13 @@ export default function App() {
 
         {/* Top Multi-Trips Selector Bar (ซ่อนตอนอยู่ใน shared link mode เพราะมีแค่ทริปเดียว) */}
         {!sharedTripMode && (
-          <div className="bg-slate-950 text-white px-3 py-2 border-b border-slate-800 flex items-center justify-between gap-2">
+          <div className="bg-neutral-950 text-white px-3 py-2 border-b border-neutral-800 flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 flex-1 overflow-hidden">
-              <Globe className="w-4 h-4 text-rose-400 shrink-0" />
+              <Globe className="w-4 h-4 text-pink-400 shrink-0" />
               <select
                 value={activeTripId}
                 onChange={(e) => handleSelectTrip(e.target.value)}
-                className="bg-slate-800 text-white text-xs font-bold px-2 py-1.5 rounded-lg border border-slate-700 outline-none w-full truncate"
+                className="bg-neutral-800 text-white text-xs font-bold px-2 py-1.5 rounded-lg border border-neutral-700 outline-none w-full truncate"
               >
                 {tripsList.filter((t) => !t.is_template).map((t) => (
                   <option key={t.trip_id} value={t.trip_id}>{t.trip_name}</option>
@@ -1199,11 +1199,11 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
-              <button onClick={() => setIsTemplateModalOpen(true)} className="bg-rose-500 hover:bg-rose-600 text-white text-xs px-2 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors">
+              <button onClick={() => setIsTemplateModalOpen(true)} className="bg-pink-500 hover:bg-pink-600 text-white text-xs px-2 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors">
                 <FolderPlus className="w-3.5 h-3.5" />
                 <span>+ ทริป</span>
               </button>
-              <button onClick={handleDeleteCurrentTrip} className="p-1.5 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-lg transition-colors" title="ลบทริปนี้">
+              <button onClick={handleDeleteCurrentTrip} className="p-1.5 bg-neutral-800 hover:bg-pink-950 text-neutral-400 hover:text-pink-400 rounded-lg transition-colors" title="ลบทริปนี้">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -1211,23 +1211,23 @@ export default function App() {
         )}
 
         {!currentTrip ? (
-          <div className="p-10 text-center text-slate-400 text-sm space-y-3">
+          <div className="p-10 text-center text-neutral-400 text-sm space-y-3">
             <p>ยังไม่มีทริป</p>
-            <button onClick={() => setIsTemplateModalOpen(true)} className="px-4 py-2 bg-rose-500 text-white rounded-lg text-xs font-bold">
+            <button onClick={() => setIsTemplateModalOpen(true)} className="px-4 py-2 bg-pink-500 text-white rounded-lg text-xs font-bold">
               เริ่มสร้างทริปใหม่
             </button>
           </div>
         ) : (
           <>
             {/* Header */}
-            <header className="sticky top-0 z-30 bg-slate-900 text-white shadow-lg border-b border-slate-800">
+            <header className="sticky top-0 z-30 bg-neutral-900 text-white shadow-lg border-b border-neutral-800">
               <div className="px-4 pt-3 pb-2 flex items-center justify-between">
                 <div>
                   <h1 className="text-base font-bold text-white flex items-center gap-1.5">{currentTrip?.trip_name}</h1>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-400">{currentTrip?.days?.length || 0} วัน</span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                    <span className="text-xs text-neutral-400">{currentTrip?.days?.length || 0} วัน</span>
+                    <span className="text-neutral-600">•</span>
+                    <span className="text-xs font-semibold text-pink-400 flex items-center gap-1 bg-pink-950/60 px-1.5 py-0.5 rounded border border-pink-800/40">
                       <CheckSquare className="w-3 h-3" />
                       {checklistProgress.completed} / {checklistProgress.total} สำเร็จ
                     </span>
@@ -1236,47 +1236,47 @@ export default function App() {
 
                 <div className="flex items-center gap-1.5">
                   {!sharedTripMode && sessionUser && (
-                    <button onClick={() => setIsShareModalOpen(true)} className="text-[10px] bg-slate-800 hover:bg-slate-700 text-emerald-400 px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1" title="แชร์ทริปนี้">
+                    <button onClick={() => setIsShareModalOpen(true)} className="text-[10px] bg-neutral-800 hover:bg-neutral-700 text-pink-400 px-2 py-1 rounded-md border border-neutral-700 flex items-center gap-1" title="แชร์ทริปนี้">
                       <Share2 className="w-3 h-3" /> แชร์
                     </button>
                   )}
                   {!sharedTripMode && (
-                    <button onClick={handleSaveAsPersonalTemplate} className="text-[10px] bg-slate-800 hover:bg-slate-700 text-rose-400 px-2 py-1 rounded-md border border-slate-700 flex items-center gap-1" title="บันทึกทริปนี้เป็นแม่แบบส่วนตัว">
+                    <button onClick={handleSaveAsPersonalTemplate} className="text-[10px] bg-neutral-800 hover:bg-neutral-700 text-pink-400 px-2 py-1 rounded-md border border-neutral-700 flex items-center gap-1" title="บันทึกทริปนี้เป็นแม่แบบส่วนตัว">
                       <Sparkles className="w-3 h-3" /> Template
                     </button>
                   )}
                   {saving && (
-                    <span className="text-[10px] text-emerald-400 flex items-center gap-1 bg-emerald-950/60 px-2 py-1 rounded border border-emerald-800/50 font-mono">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+                    <span className="text-[10px] text-neutral-300 flex items-center gap-1 bg-neutral-800/60 px-2 py-1 rounded border border-neutral-700 font-mono">
+                      <Loader2 className="w-3 h-3 animate-spin text-pink-400" /> Saving...
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Budget Overview Widget */}
-              <div className="px-4 py-2 bg-slate-950/70 border-t border-slate-800/80 flex flex-col gap-1.5">
+              <div className="px-4 py-2 bg-neutral-950/70 border-t border-neutral-800/80 flex flex-col gap-1.5">
                 <div className="flex justify-between items-center text-xs">
-                  <div className="flex items-center gap-1 text-slate-300">
-                    <Coins className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ใช้ไป: <strong className="text-amber-400">{totalCostAmount.toLocaleString()}</strong> {currentTrip?.currency || 'THB'}</span>
+                  <div className="flex items-center gap-1 text-neutral-300">
+                    <Coins className="w-3.5 h-3.5 text-pink-400" />
+                    <span>ใช้ไป: <strong className="text-pink-400">{totalCostAmount.toLocaleString()}</strong> {currentTrip?.currency || 'THB'}</span>
                   </div>
-                  <button onClick={() => !isReadOnly && setIsBudgetModalOpen(true)} className="text-[11px] text-slate-400 hover:text-white underline flex items-center gap-1" disabled={isReadOnly}>
-                    <DollarSign className="w-3 h-3 text-rose-400" />
+                  <button onClick={() => !isReadOnly && setIsBudgetModalOpen(true)} className="text-[11px] text-neutral-400 hover:text-white underline flex items-center gap-1" disabled={isReadOnly}>
+                    <DollarSign className="w-3 h-3 text-pink-400" />
                     <span>งบ: {currentTrip?.total_budget ? currentTrip.total_budget.toLocaleString() : 'ยังไม่ตั้ง'}</span>
                   </button>
                 </div>
 
                 {currentTrip?.total_budget > 0 && (
                   <div className="space-y-1">
-                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full bg-neutral-800 h-1.5 rounded-full overflow-hidden">
                       <div
-                        className={`h-full transition-all ${remainingBudget < 0 ? 'bg-rose-500' : budgetPercentage > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        className={`h-full transition-all ${remainingBudget < 0 ? 'bg-red-500' : 'bg-pink-500'}`}
                         style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
                       />
                     </div>
                     <div className="flex justify-between text-[10px]">
-                      <span className="text-slate-400">คงเหลือ:</span>
-                      <span className={`font-bold ${remainingBudget < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      <span className="text-neutral-400">คงเหลือ:</span>
+                      <span className={`font-bold ${remainingBudget < 0 ? 'text-red-400' : 'text-white'}`}>
                         {remainingBudget.toLocaleString()} {currentTrip?.currency || 'THB'}
                       </span>
                     </div>
@@ -1286,16 +1286,16 @@ export default function App() {
 
               {/* Days Tabs + ปุ่มเพิ่มวัน */}
               <div className="px-2 py-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <button onClick={() => setActiveDay('all')} className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-medium whitespace-nowrap ${activeDay === 'all' ? 'bg-rose-500 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}>
+                <button onClick={() => setActiveDay('all')} className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-medium whitespace-nowrap ${activeDay === 'all' ? 'bg-pink-500 text-white font-semibold' : 'bg-neutral-800 text-neutral-300'}`}>
                   ทั้งหมด
                 </button>
                 {(currentTrip?.days || []).map((d) => (
-                  <button key={d.day} onClick={() => setActiveDay(d.day)} className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-medium whitespace-nowrap ${activeDay === d.day ? 'bg-rose-500 text-white font-semibold' : 'bg-slate-800 text-slate-300'}`}>
+                  <button key={d.day} onClick={() => setActiveDay(d.day)} className={`px-3 py-1.5 min-h-[36px] rounded-full text-xs font-medium whitespace-nowrap ${activeDay === d.day ? 'bg-pink-500 text-white font-semibold' : 'bg-neutral-800 text-neutral-300'}`}>
                     Day {d.day}
                   </button>
                 ))}
                 {!isReadOnly && (
-                  <button onClick={handleAddNewDay} className="px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold whitespace-nowrap bg-slate-800 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 transition-colors flex items-center gap-1" title="เพิ่มวันใหม่">
+                  <button onClick={handleAddNewDay} className="px-3 py-1.5 min-h-[36px] rounded-full text-xs font-bold whitespace-nowrap bg-neutral-800 hover:bg-pink-600 text-pink-400 hover:text-white border border-pink-500/30 transition-colors flex items-center gap-1" title="เพิ่มวันใหม่">
                     <Plus className="w-3.5 h-3.5" />
                     <span>เพิ่มวัน</span>
                   </button>
@@ -1307,27 +1307,27 @@ export default function App() {
             <main className="p-4 space-y-4">
               <div className="space-y-2">
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-neutral-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="ค้นหาสถานที่ หรือสายรถไฟ..."
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:border-rose-500"
+                    className="w-full pl-9 pr-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-white placeholder-neutral-400 focus:outline-none focus:border-pink-500"
                   />
                   {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-white">ล้าง</button>
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-2.5 text-xs text-neutral-400 hover:text-white">ล้าง</button>
                   )}
                 </div>
 
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
-                  <button onClick={() => setCategoryFilter('ALL')} className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${categoryFilter === 'ALL' ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                  <button onClick={() => setCategoryFilter('ALL')} className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${categoryFilter === 'ALL' ? 'bg-pink-500 text-white' : 'bg-neutral-800 text-neutral-400'}`}>
                     ทั้งหมด
                   </button>
                   {Object.entries(CATEGORY_MAP).map(([key, cat]) => {
                     const Icon = cat.icon;
                     return (
-                      <button key={key} onClick={() => setCategoryFilter(categoryFilter === key ? 'ALL' : key)} className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1 border ${categoryFilter === key ? 'bg-slate-700 text-white border-rose-500' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+                      <button key={key} onClick={() => setCategoryFilter(categoryFilter === key ? 'ALL' : key)} className={`px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap flex items-center gap-1 border ${categoryFilter === key ? 'bg-neutral-700 text-white border-pink-500' : 'bg-neutral-900 text-neutral-400 border-neutral-800'}`}>
                         <Icon className="w-3 h-3" />
                         <span>{cat.label}</span>
                       </button>
@@ -1336,7 +1336,7 @@ export default function App() {
                 </div>
               </div>
 
-              <p className="text-[10px] text-slate-500 flex items-center gap-1 px-1">
+              <p className="text-[10px] text-neutral-500 flex items-center gap-1 px-1">
                 <Map className="w-3 h-3 shrink-0" />
                 <span>เส้นทางวันนี้จะแม่นยำขึ้นถ้าแปะ "ลิงก์ Google Maps" (แบบเต็ม ไม่ใช่ลิงก์แชร์ย่อ) ไว้ตอนเพิ่มสถานที่</span>
               </p>
@@ -1349,9 +1349,9 @@ export default function App() {
 
                   return (
                     <div key={dayData.day} className="mb-6 space-y-3">
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex justify-between items-center gap-2">
+                      <div className="bg-neutral-800/80 p-3 rounded-xl border border-neutral-700 flex justify-between items-center gap-2">
                         <div className="min-w-0">
-                          <span className="text-xs font-bold text-rose-400">Day {dayData.day}</span>
+                          <span className="text-xs font-bold text-pink-400">Day {dayData.day}</span>
                           <h2 className="text-sm font-bold text-white truncate">{dayData.title}</h2>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -1361,7 +1361,7 @@ export default function App() {
                                 const url = buildDayRouteUrl(dayData, currentTrip?.trip_name);
                                 if (url) window.open(url, '_blank', 'noopener,noreferrer');
                               }}
-                              className="p-1.5 bg-slate-900 hover:bg-cyan-950 text-cyan-400 rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors border border-cyan-800/40"
+                              className="p-1.5 bg-neutral-900 hover:bg-neutral-800 text-pink-400 rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors border border-neutral-700"
                               title="ดูเส้นทางทั้งวันใน Google Maps"
                             >
                               <Map className="w-3.5 h-3.5" />
@@ -1378,11 +1378,11 @@ export default function App() {
                                   setNewlyUploadedUrls([]);
                                   setIsModalOpen(true);
                                 }}
-                                className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
+                                className="p-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
                               >
                                 <Plus className="w-3.5 h-3.5" /> เพิ่มสถานที่
                               </button>
-                              <button onClick={() => handleDeleteDay(dayData.day)} className="p-1.5 bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-lg text-xs transition-colors" title={`ลบ Day ${dayData.day}`}>
+                              <button onClick={() => handleDeleteDay(dayData.day)} className="p-1.5 bg-neutral-900 hover:bg-pink-950 text-neutral-400 hover:text-pink-400 rounded-lg text-xs transition-colors" title={`ลบ Day ${dayData.day}`}>
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </>
@@ -1391,7 +1391,7 @@ export default function App() {
                       </div>
 
                       {filteredLocs.length === 0 ? (
-                        <div className="text-center py-6 bg-slate-900/50 border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs">
+                        <div className="text-center py-6 bg-neutral-900/50 border border-dashed border-neutral-800 rounded-xl text-neutral-500 text-xs">
                           ยังไม่มีสถานที่ในวันนี้
                         </div>
                       ) : (
@@ -1400,14 +1400,14 @@ export default function App() {
                           const realIndex = (dayData.locations || []).findIndex((l) => l.id === loc.id);
 
                           return (
-                            <div key={loc.id} className={`p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-2 transition-all ${isChecked ? 'opacity-50' : 'opacity-100'}`}>
+                            <div key={loc.id} className={`p-3 bg-neutral-900 border border-neutral-800 rounded-xl space-y-2 transition-all ${isChecked ? 'opacity-50' : 'opacity-100'}`}>
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex items-center gap-2">
-                                  <button onClick={() => handleToggleCheck(loc.id)} className="text-slate-400 hover:text-emerald-400">
-                                    <CheckCircle2 className={`w-4 h-4 ${isChecked ? 'text-emerald-400' : ''}`} />
+                                  <button onClick={() => handleToggleCheck(loc.id)} className="text-neutral-400 hover:text-pink-400">
+                                    <CheckCircle2 className={`w-4 h-4 ${isChecked ? 'text-pink-400' : ''}`} />
                                   </button>
-                                  <span className="text-xs font-mono text-slate-400 flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-rose-400" /> {loc.time}
+                                  <span className="text-xs font-mono text-neutral-400 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-pink-400" /> {loc.time}
                                   </span>
                                 </div>
                                 {!isReadOnly && (
@@ -1419,31 +1419,31 @@ export default function App() {
                                       setNewlyUploadedUrls([]);
                                       setIsModalOpen(true);
                                     }}
-                                    className="p-1 text-slate-400 hover:text-white"
+                                    className="p-1 text-neutral-400 hover:text-white"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
                                   </button>
                                 )}
                               </div>
 
-                              <h3 className={`text-sm font-bold text-white ${isChecked ? 'line-through text-slate-500' : ''}`}>{loc.location_name}</h3>
+                              <h3 className={`text-sm font-bold text-white ${isChecked ? 'line-through text-neutral-500' : ''}`}>{loc.location_name}</h3>
 
                               {loc.start_point && loc.start_point !== loc.location_name && (
-                                <p className="text-xs text-slate-400">จาก: {loc.start_point}</p>
+                                <p className="text-xs text-neutral-400">จาก: {loc.start_point}</p>
                               )}
 
                               {loc.transport_detail && (
-                                <p className="text-xs text-slate-400 bg-slate-950 p-2 rounded-lg border border-slate-800/60 flex items-start gap-1">
-                                  <Compass className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                                <p className="text-xs text-neutral-400 bg-neutral-950 p-2 rounded-lg border border-neutral-800/60 flex items-start gap-1">
+                                  <Compass className="w-3.5 h-3.5 text-neutral-500 shrink-0 mt-0.5" />
                                   <span>{loc.transport_detail}</span>
                                 </p>
                               )}
 
                               {(loc.ticket_url || loc.attachment_note) && (
-                                <div className="p-2 bg-slate-950/80 rounded-lg border border-slate-800 flex flex-col gap-1.5 text-xs">
+                                <div className="p-2 bg-neutral-950/80 rounded-lg border border-neutral-800 flex flex-col gap-1.5 text-xs">
                                   {loc.ticket_url && (
                                     <div className="flex items-center justify-between gap-2">
-                                      <a href={loc.ticket_url} target="_blank" rel="noreferrer" className="text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium truncate">
+                                      <a href={loc.ticket_url} target="_blank" rel="noreferrer" className="text-pink-400 hover:text-pink-300 flex items-center gap-1 font-medium truncate">
                                         <Ticket className="w-3.5 h-3.5 shrink-0" />
                                         <span className="truncate">เปิดเอกสารแนบ / ตั๋วเดินทาง</span>
                                         <ExternalLink className="w-3 h-3 shrink-0" />
@@ -1451,8 +1451,8 @@ export default function App() {
                                     </div>
                                   )}
                                   {loc.attachment_note && (
-                                    <span className="text-slate-400 flex items-center gap-1 text-[11px]">
-                                      <FileText className="w-3 h-3 text-slate-500 shrink-0" />
+                                    <span className="text-neutral-400 flex items-center gap-1 text-[11px]">
+                                      <FileText className="w-3 h-3 text-neutral-500 shrink-0" />
                                       <span>{loc.attachment_note}</span>
                                     </span>
                                   )}
@@ -1460,29 +1460,29 @@ export default function App() {
                               )}
 
                               {loc.cost_amount > 0 && (
-                                <div className="text-xs text-amber-400 font-bold flex items-center gap-1">
+                                <div className="text-xs text-pink-400 font-bold flex items-center gap-1">
                                   <Coins className="w-3 h-3" />
                                   <span>{loc.cost_amount.toLocaleString()} {currentTrip?.currency || 'THB'}</span>
-                                  <span className="text-[10px] text-slate-500 font-normal">({loc.cost_info})</span>
+                                  <span className="text-[10px] text-neutral-500 font-normal">({loc.cost_info})</span>
                                 </div>
                               )}
 
-                              <div className="pt-2 flex justify-between items-center border-t border-slate-800">
+                              <div className="pt-2 flex justify-between items-center border-t border-neutral-800">
                                 <a
                                   href={loc.map_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.location_name + ' ' + currentTrip?.trip_name)}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold bg-cyan-950/40 px-2.5 py-1 rounded-md border border-cyan-800/40"
+                                  className="text-xs text-pink-400 hover:text-pink-300 flex items-center gap-1 font-semibold bg-neutral-800 px-2.5 py-1 rounded-md border border-neutral-700"
                                 >
                                   <Navigation className="w-3.5 h-3.5" /> นำทาง
                                 </a>
 
                                 {!isReadOnly && (
                                   <div className="flex gap-1">
-                                    <button onClick={() => moveLocationReal(dayData.day, loc.id, 'up')} disabled={realIndex === 0} className="p-1 text-slate-400 hover:text-white disabled:opacity-20">
+                                    <button onClick={() => moveLocationReal(dayData.day, loc.id, 'up')} disabled={realIndex === 0} className="p-1 text-neutral-400 hover:text-white disabled:opacity-20">
                                       <ChevronUp className="w-4 h-4" />
                                     </button>
-                                    <button onClick={() => moveLocationReal(dayData.day, loc.id, 'down')} disabled={realIndex === totalLocs - 1} className="p-1 text-slate-400 hover:text-white disabled:opacity-20">
+                                    <button onClick={() => moveLocationReal(dayData.day, loc.id, 'down')} disabled={realIndex === totalLocs - 1} className="p-1 text-neutral-400 hover:text-white disabled:opacity-20">
                                       <ChevronDown className="w-4 h-4" />
                                     </button>
                                   </div>
@@ -1502,34 +1502,34 @@ export default function App() {
         {/* Modal Auth (Sign In / Sign Up) */}
         {isAuthModalOpen && (
           <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-900 w-full max-w-sm p-5 rounded-2xl border border-slate-800 space-y-4 shadow-2xl">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div className="bg-neutral-900 w-full max-w-sm p-5 rounded-2xl border border-neutral-800 space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  {authMode === 'login' ? <LogIn className="w-4 h-4 text-rose-500" /> : <UserPlus className="w-4 h-4 text-rose-500" />}
+                  {authMode === 'login' ? <LogIn className="w-4 h-4 text-pink-500" /> : <UserPlus className="w-4 h-4 text-pink-500" />}
                   <span>{authMode === 'login' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิกใหม่'}</span>
                 </h3>
-                <button onClick={() => setIsAuthModalOpen(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={() => setIsAuthModalOpen(false)} className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
 
-              {authError && <div className="p-2.5 bg-rose-950/80 border border-rose-800/80 rounded-lg text-rose-300 text-xs">{authError}</div>}
-              {authInfo && <div className="p-2.5 bg-emerald-950/80 border border-emerald-800/80 rounded-lg text-emerald-300 text-xs">{authInfo}</div>}
+              {authError && <div className="p-2.5 bg-red-950/80 border border-red-800/80 rounded-lg text-red-300 text-xs">{authError}</div>}
+              {authInfo && <div className="p-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-xs">{authInfo}</div>}
 
               <form onSubmit={handleAuthSubmit} className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">อีเมล</label>
-                  <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="name@example.com" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700 outline-none focus:border-rose-500" />
+                  <label className="text-xs text-neutral-400 mb-1 block">อีเมล</label>
+                  <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="name@example.com" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700 outline-none focus:border-pink-500" />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">รหัสผ่าน</label>
-                  <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700 outline-none focus:border-rose-500" />
+                  <label className="text-xs text-neutral-400 mb-1 block">รหัสผ่าน</label>
+                  <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder="รหัสผ่านอย่างน้อย 6 ตัวอักษร" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700 outline-none focus:border-pink-500" />
                 </div>
-                <button type="submit" disabled={authLoading} className="w-full p-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-800 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1.5 transition-colors">
+                <button type="submit" disabled={authLoading} className="w-full p-2.5 bg-pink-500 hover:bg-pink-600 disabled:bg-neutral-800 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1.5 transition-colors">
                   {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : authMode === 'login' ? 'เข้าสู่ระบบ' : 'ลงทะเบียน'}
                 </button>
               </form>
 
-              <div className="text-center pt-2 border-t border-slate-800/80">
-                <button type="button" onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); setAuthInfo(''); }} className="text-xs text-slate-400 hover:text-rose-400 underline transition-colors">
+              <div className="text-center pt-2 border-t border-neutral-800/80">
+                <button type="button" onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setAuthError(''); setAuthInfo(''); }} className="text-xs text-neutral-400 hover:text-pink-400 underline transition-colors">
                   {authMode === 'login' ? 'ยังไม่มีบัญชี? สมัครสมาชิกใหม่ที่นี่' : 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบที่นี่'}
                 </button>
               </div>
@@ -1540,47 +1540,47 @@ export default function App() {
         {/* Modal Share Trip */}
         {isShareModalOpen && currentTrip && (
           <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-900 w-full max-w-sm p-5 rounded-2xl border border-slate-800 space-y-4 shadow-2xl">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div className="bg-neutral-900 w-full max-w-sm p-5 rounded-2xl border border-neutral-800 space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Share2 className="w-4 h-4 text-emerald-500" /> แชร์ทริปนี้
+                  <Share2 className="w-4 h-4 text-pink-500" /> แชร์ทริปนี้
                 </h3>
-                <button onClick={() => setIsShareModalOpen(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={() => setIsShareModalOpen(false)} className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
 
               {!currentTrip.share_token ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-slate-400">เลือกสิทธิ์ของคนที่ได้รับลิงก์นี้:</p>
-                  <button onClick={() => handleGenerateShareLink('view')} className="w-full p-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
+                  <p className="text-xs text-neutral-400">เลือกสิทธิ์ของคนที่ได้รับลิงก์นี้:</p>
+                  <button onClick={() => handleGenerateShareLink('view')} className="w-full p-2.5 bg-neutral-700 hover:bg-neutral-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
                     <Eye className="w-4 h-4" /> สร้างลิงก์ (ดูอย่างเดียว)
                   </button>
-                  <button onClick={() => handleGenerateShareLink('edit')} className="w-full p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
+                  <button onClick={() => handleGenerateShareLink('edit')} className="w-full p-2.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
                     <Edit3 className="w-4 h-4" /> สร้างลิงก์ (แก้ไขได้)
                   </button>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className={`p-2 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 ${currentTrip.share_permission === 'edit' ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/50' : 'bg-sky-950/60 text-sky-300 border border-sky-800/50'}`}>
+                  <div className={`p-2 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 ${currentTrip.share_permission === 'edit' ? 'bg-pink-950/60 text-pink-300 border border-pink-800/50' : 'bg-neutral-800 text-neutral-300 border border-neutral-700'}`}>
                     {currentTrip.share_permission === 'edit' ? <Edit3 className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     <span>สิทธิ์ปัจจุบัน: {currentTrip.share_permission === 'edit' ? 'แก้ไขได้' : 'ดูอย่างเดียว'}</span>
                   </div>
 
-                  <div className="p-2 bg-slate-800 rounded-lg border border-slate-700 text-[11px] text-slate-300 break-all">
+                  <div className="p-2 bg-neutral-800 rounded-lg border border-neutral-700 text-[11px] text-neutral-300 break-all">
                     {`${window.location.origin}/shared/${currentTrip.share_token}`}
                   </div>
 
-                  <button onClick={handleCopyShareLink} className="w-full p-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
+                  <button onClick={handleCopyShareLink} className="w-full p-2.5 bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
                     <Copy className="w-3.5 h-3.5" /> {shareCopyLabel}
                   </button>
 
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleGenerateShareLink(currentTrip.share_permission === 'edit' ? 'view' : 'edit')}
-                      className="flex-1 p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold rounded-lg border border-slate-700"
+                      className="flex-1 p-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] font-semibold rounded-lg border border-neutral-700"
                     >
                       สลับเป็น{currentTrip.share_permission === 'edit' ? 'ดูอย่างเดียว' : 'แก้ไขได้'}
                     </button>
-                    <button onClick={handleRevokeShareLink} className="flex-1 p-2 bg-slate-800 hover:bg-rose-950 text-rose-400 text-[11px] font-semibold rounded-lg border border-slate-700 flex items-center justify-center gap-1">
+                    <button onClick={handleRevokeShareLink} className="flex-1 p-2 bg-neutral-800 hover:bg-pink-950 text-pink-400 text-[11px] font-semibold rounded-lg border border-neutral-700 flex items-center justify-center gap-1">
                       <Ban className="w-3.5 h-3.5" /> ยกเลิกลิงก์
                     </button>
                   </div>
@@ -1593,43 +1593,43 @@ export default function App() {
         {/* Modal เลือก Template / สร้างทริปใหม่ */}
         {isTemplateModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center p-4 z-50">
-            <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div className="bg-neutral-900 w-full max-w-md p-4 rounded-2xl border border-neutral-800 space-y-4">
+              <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <FolderPlus className="w-4 h-4 text-rose-500" /> เพิ่มทริปใหม่
+                  <FolderPlus className="w-4 h-4 text-pink-500" /> เพิ่มทริปใหม่
                 </h3>
-                <button onClick={() => setIsTemplateModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
+                <button onClick={() => setIsTemplateModalOpen(false)} className="text-neutral-400"><X className="w-5 h-5" /></button>
               </div>
 
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                <div className="p-3 bg-rose-950/30 border border-rose-800/50 rounded-xl space-y-2">
+                <div className="p-3 bg-pink-950/30 border border-pink-800/50 rounded-xl space-y-2">
                   <div>
-                    <h4 className="text-xs font-bold text-rose-300">สร้างทริปใหม่เปล่าๆ (Blank Trip)</h4>
-                    <p className="text-[10px] text-slate-400">สร้างทริปจากหน้ากระดาษเปล่า ไม่ใช้แม่แบบ</p>
+                    <h4 className="text-xs font-bold text-pink-300">สร้างทริปใหม่เปล่าๆ (Blank Trip)</h4>
+                    <p className="text-[10px] text-neutral-400">สร้างทริปจากหน้ากระดาษเปล่า ไม่ใช้แม่แบบ</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       value={newTripNameInput}
                       onChange={(e) => setNewTripNameInput(e.target.value)}
                       placeholder="ตั้งชื่อทริป (เช่น เที่ยวเกาหลี ธ.ค.)"
-                      className="flex-1 text-xs p-2 bg-slate-900 text-white rounded-lg border border-slate-700 outline-none focus:border-rose-500"
+                      className="flex-1 text-xs p-2 bg-neutral-900 text-white rounded-lg border border-neutral-700 outline-none focus:border-pink-500"
                     />
-                    <button onClick={handleCreateBlankTrip} className="px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
+                    <button onClick={handleCreateBlankTrip} className="px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
                       + สร้าง
                     </button>
                   </div>
                 </div>
 
-                <hr className="border-slate-800" />
-                <p className="text-xs text-slate-400">หรือเลือกจากแม่แบบสำเร็จรูป / แม่แบบส่วนตัว:</p>
+                <hr className="border-neutral-800" />
+                <p className="text-xs text-neutral-400">หรือเลือกจากแม่แบบสำเร็จรูป / แม่แบบส่วนตัว:</p>
 
                 {[...PRESET_TEMPLATES, ...tripsList.filter((t) => t.is_template)].map((tpl) => (
-                  <div key={tpl.trip_id} className="p-3 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-between gap-2">
+                  <div key={tpl.trip_id} className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl flex items-center justify-between gap-2">
                     <div>
                       <h4 className="text-xs font-bold text-white">{tpl.trip_name}</h4>
-                      <p className="text-[10px] text-slate-400">{tpl.days?.length || 0} วัน | สกุลเงิน: {tpl.currency || 'THB'}</p>
+                      <p className="text-[10px] text-neutral-400">{tpl.days?.length || 0} วัน | สกุลเงิน: {tpl.currency || 'THB'}</p>
                     </div>
-                    <button onClick={() => handleCreateNewTripFromTemplate(tpl)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
+                    <button onClick={() => handleCreateNewTripFromTemplate(tpl)} className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
                       ใช้แม่แบบนี้
                     </button>
                   </div>
@@ -1642,12 +1642,12 @@ export default function App() {
         {/* Modal ตั้งค่างบประมาณทริป */}
         {isBudgetModalOpen && currentTrip && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-900 w-full max-w-sm p-4 rounded-2xl border border-slate-800 space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div className="bg-neutral-900 w-full max-w-sm p-4 rounded-2xl border border-neutral-800 space-y-4">
+              <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-400" /> ตั้งค่างบประมาณทริป
+                  <DollarSign className="w-4 h-4 text-pink-400" /> ตั้งค่างบประมาณทริป
                 </h3>
-                <button onClick={() => setIsBudgetModalOpen(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
+                <button onClick={() => setIsBudgetModalOpen(false)} className="text-neutral-400"><X className="w-5 h-5" /></button>
               </div>
 
               <form
@@ -1663,20 +1663,20 @@ export default function App() {
                 className="space-y-3"
               >
                 <div>
-                  <label className="text-xs text-slate-400 mb-1 block">ชื่อทริป</label>
-                  <input name="trip_name" defaultValue={currentTrip.trip_name} className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                  <label className="text-xs text-neutral-400 mb-1 block">ชื่อทริป</label>
+                  <input name="trip_name" defaultValue={currentTrip.trip_name} className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">งบประมาณรวม</label>
-                    <input name="total_budget" type="number" defaultValue={currentTrip.total_budget || 0} className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                    <label className="text-xs text-neutral-400 mb-1 block">งบประมาณรวม</label>
+                    <input name="total_budget" type="number" defaultValue={currentTrip.total_budget || 0} className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">สกุลเงิน</label>
-                    <input name="currency" defaultValue={currentTrip.currency || 'THB'} placeholder="เช่น JPY, THB" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                    <label className="text-xs text-neutral-400 mb-1 block">สกุลเงิน</label>
+                    <input name="currency" defaultValue={currentTrip.currency || 'THB'} placeholder="เช่น JPY, THB" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
                   </div>
                 </div>
-                <button type="submit" className="w-full p-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
+                <button type="submit" className="w-full p-2.5 bg-pink-500 hover:bg-pink-600 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
                   <Save className="w-4 h-4" /> บันทึกการตั้งค่า
                 </button>
               </form>
@@ -1687,10 +1687,10 @@ export default function App() {
         {/* Modal เพิ่ม/แก้ไข รายการสถานที่ */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/70 flex items-end justify-center p-4 z-50">
-            <div className="bg-slate-900 w-full max-w-md p-4 rounded-2xl border border-slate-800 space-y-3 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div className="bg-neutral-900 w-full max-w-md p-4 rounded-2xl border border-neutral-800 space-y-3 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
                 <h3 className="text-sm font-bold text-white">{editingLocData ? 'แก้ไขสถานที่' : 'เพิ่มสถานที่ใหม่'}</h3>
-                <button onClick={handleCloseModal} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={handleCloseModal} className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
 
               <form
@@ -1724,37 +1724,37 @@ export default function App() {
                 className="space-y-2"
               >
                 <div className="grid grid-cols-2 gap-2">
-                  <input name="time" defaultValue={editingLocData?.time || ''} placeholder="เวลา (เช่น 09:00)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
-                  <select name="category" defaultValue={editingLocData?.category || 'Sightseeing'} className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700">
+                  <input name="time" defaultValue={editingLocData?.time || ''} placeholder="เวลา (เช่น 09:00)" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
+                  <select name="category" defaultValue={editingLocData?.category || 'Sightseeing'} className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700">
                     {Object.entries(CATEGORY_MAP).map(([k, cat]) => (
                       <option key={k} value={k}>{cat.label}</option>
                     ))}
                   </select>
                 </div>
 
-                <input name="location_name" required defaultValue={editingLocData?.location_name || ''} placeholder="ชื่อสถานที่ (จุดหมาย) *" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
-                <input name="start_point" defaultValue={editingLocData?.start_point || ''} placeholder="เริ่มเดินทางจาก (จุดเริ่มต้น)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
-                <textarea name="transport_detail" defaultValue={editingLocData?.transport_detail || ''} placeholder="รายละเอียดการเดินทาง..." className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700 h-16" />
+                <input name="location_name" required defaultValue={editingLocData?.location_name || ''} placeholder="ชื่อสถานที่ (จุดหมาย) *" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
+                <input name="start_point" defaultValue={editingLocData?.start_point || ''} placeholder="เริ่มเดินทางจาก (จุดเริ่มต้น)" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
+                <textarea name="transport_detail" defaultValue={editingLocData?.transport_detail || ''} placeholder="รายละเอียดการเดินทาง..." className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700 h-16" />
 
                 <div className="grid grid-cols-2 gap-3">
-                  <input name="cost_amount" type="number" defaultValue={editingLocData?.cost_amount || 0} placeholder="ประมาณการราคา" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
-                  <input name="cost_info" defaultValue={editingLocData?.cost_info || ''} placeholder="หมายเหตุงบ (เช่น MTR)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                  <input name="cost_amount" type="number" defaultValue={editingLocData?.cost_amount || 0} placeholder="ประมาณการราคา" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
+                  <input name="cost_info" defaultValue={editingLocData?.cost_info || ''} placeholder="หมายเหตุงบ (เช่น MTR)" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
                 </div>
 
-                <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
-                  <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
+                <div className="p-2.5 bg-neutral-950/60 rounded-xl border border-neutral-800 space-y-2">
+                  <span className="text-[11px] font-bold text-pink-400 flex items-center gap-1">
                     <Ticket className="w-3.5 h-3.5" /> แนบเอกสาร / ลิงก์ตั๋วเดินทาง
                   </span>
                   <div className="flex items-center gap-2">
-                    <label className="flex-1 cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs p-2 rounded-lg border border-dashed border-slate-600 flex items-center justify-center gap-1.5 transition-colors">
+                    <label className="flex-1 cursor-pointer bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs p-2 rounded-lg border border-dashed border-neutral-600 flex items-center justify-center gap-1.5 transition-colors">
                       {uploadingFile ? (
                         <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-400" />
                           <span>กำลังอัปโหลด...</span>
                         </>
                       ) : (
                         <>
-                          <Upload className="w-3.5 h-3.5 text-rose-400" />
+                          <Upload className="w-3.5 h-3.5 text-pink-400" />
                           <span>แนบไฟล์ตั๋ว/รูปภาพ (PDF, JPG, PNG)</span>
                         </>
                       )}
@@ -1763,7 +1763,7 @@ export default function App() {
                   </div>
 
                   {uploadedTicketUrl && (
-                    <div className="text-[10px] text-emerald-400 bg-emerald-950/50 p-1.5 rounded border border-emerald-800/40 flex items-center justify-between">
+                    <div className="text-[10px] text-pink-400 bg-pink-950/50 p-1.5 rounded border border-pink-800/40 flex items-center justify-between">
                       <span className="truncate">✓ มีไฟล์แนบพร้อมใช้งาน</span>
                       <button
                         type="button"
@@ -1771,7 +1771,7 @@ export default function App() {
                           if (uploadedTicketUrl !== editingLocData?.ticket_url) await deleteFileFromStorage(uploadedTicketUrl);
                           setUploadedTicketUrl('');
                         }}
-                        className="text-slate-400 hover:text-rose-400 text-xs p-0.5"
+                        className="text-neutral-400 hover:text-pink-400 text-xs p-0.5"
                         title="นำไฟล์แนบออก"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -1779,14 +1779,14 @@ export default function App() {
                     </div>
                   )}
 
-                  <input name="ticket_url" value={uploadedTicketUrl} onChange={(e) => setUploadedTicketUrl(e.target.value)} placeholder="URL ลิงก์ตั๋ว / e-Ticket (https://...)" className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
-                  <input name="attachment_note" defaultValue={editingLocData?.attachment_note || ''} placeholder="หมายเหตุการเก็บไฟล์ (เช่น อยู่ใน Google Drive / Email)" className="w-full text-xs p-2 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                  <input name="ticket_url" value={uploadedTicketUrl} onChange={(e) => setUploadedTicketUrl(e.target.value)} placeholder="URL ลิงก์ตั๋ว / e-Ticket (https://...)" className="w-full text-xs p-2 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
+                  <input name="attachment_note" defaultValue={editingLocData?.attachment_note || ''} placeholder="หมายเหตุการเก็บไฟล์ (เช่น อยู่ใน Google Drive / Email)" className="w-full text-xs p-2 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
                 </div>
 
-                <input name="map_url" defaultValue={editingLocData?.map_url || ''} placeholder="ลิงก์ Google Maps (ถ้ามี)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
+                <input name="map_url" defaultValue={editingLocData?.map_url || ''} placeholder="ลิงก์ Google Maps (ถ้ามี)" className="w-full text-xs p-2.5 bg-neutral-800 text-white rounded-lg border border-neutral-700" />
 
                 <div className="flex gap-2 pt-2">
-                  <button type="submit" disabled={uploadingFile || resolvingMapUrl} className="flex-1 p-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-700 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
+                  <button type="submit" disabled={uploadingFile || resolvingMapUrl} className="flex-1 p-2.5 bg-pink-500 hover:bg-pink-600 disabled:bg-neutral-700 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
                     {resolvingMapUrl ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" /> กำลังตรวจสอบลิงก์...
@@ -1798,7 +1798,7 @@ export default function App() {
                     )}
                   </button>
                   {editingLocData?.id && (
-                    <button type="button" onClick={() => deleteLocationData(targetDayNum, editingLocData.id)} className="p-2.5 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-xl transition-colors">
+                    <button type="button" onClick={() => deleteLocationData(targetDayNum, editingLocData.id)} className="p-2.5 bg-neutral-800 hover:bg-pink-950 text-neutral-400 hover:text-pink-400 rounded-xl transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
