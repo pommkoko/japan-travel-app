@@ -315,6 +315,7 @@ export default function App() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadedTicketUrl, setUploadedTicketUrl] = useState('');
   const [newlyUploadedUrls, setNewlyUploadedUrls] = useState([]);
+  const [resolvingMapUrl, setResolvingMapUrl] = useState(false);
 
   // PWA & Network Status States
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -970,18 +971,62 @@ export default function App() {
     updateCurrentTripData({ ...currentTrip, days: updatedDays });
   };
 
+  // เช็คว่าเป็นลิงก์แชร์แบบย่อของ Google Maps ไหม (ดึงพิกัดจากตัว URL ตรงๆ ไม่ได้ ต้อง resolve ก่อน)
+  const isShortMapLink = (url) => {
+    if (!url) return false;
+    return /^(https?:\/\/)?(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(url.trim());
+  };
+
+  // เรียก serverless function ให้ตามลิงก์ย่อไปหาพิกัดแทน (เลี่ยงข้อจำกัด CORS ฝั่งเบราว์เซอร์)
+  const resolveMapUrlToCoords = async (url) => {
+    try {
+      const res = await fetch(`/api/resolve-map-link?url=${encodeURIComponent(url)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (typeof data.lat === 'number' && typeof data.lng === 'number') {
+        return { lat: data.lat, lng: data.lng };
+      }
+      return null;
+    } catch (err) {
+      console.warn('Resolve map link failed:', err);
+      return null;
+    }
+  };
+
+  // ดึงพิกัดจากลิงก์ Google Maps ที่ user แปะไว้ในช่อง "ลิงก์ Google Maps"
+  // รองรับเฉพาะลิงก์เต็มที่มีพิกัดอยู่ใน URL ตรงๆ เท่านั้น (ลิงก์แชร์แบบย่อ maps.app.goo.gl ดึงไม่ได้ ต้องผ่าน resolveMapUrlToCoords ตอนบันทึกแทน)
+  const extractLatLngFromMapUrl = (url) => {
+    if (!url) return null;
+    const patterns = [
+      /@(-?\d+\.\d+),(-?\d+\.\d+)/, // .../@35.714,139.796,17z
+      /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, // พารามิเตอร์พิกัดภายในของ Google
+      /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/, // ?q=35.714,139.796
+      /[?&]query=(-?\d+\.\d+),(-?\d+\.\d+)/, // ?query=35.714,139.796
+      /[?&]destination=(-?\d+\.\d+),(-?\d+\.\d+)/ // ?destination=35.714,139.796
+    ];
+    for (const re of patterns) {
+      const m = url.match(re);
+      if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    }
+    return null;
+  };
+
   // สร้างลิงก์ Google Maps เส้นทางทั้งวัน (ต้นทาง -> จุดแวะ -> ปลายทาง)
-  // ใช้พิกัด lat/lng ก่อนถ้ามี (แม่นกว่า) ไม่มีค่อย fallback เป็นชื่อสถานที่ + ค้นหา
+  // ลำดับความแม่นยำ: 1) พิกัดที่ดึงจากลิงก์ Google Maps ที่ user แปะไว้ 2) พิกัดจากข้อมูล preset (lat/lng) 3) ชื่อสถานที่
   const buildDayRouteUrl = (dayData, tripName) => {
     const locs = (dayData.locations || []).filter((l) => l.location_name);
     if (locs.length === 0) return null;
 
     const toPoint = (loc) => {
+      const fromMapUrl = extractLatLngFromMapUrl(loc.map_url);
+      if (fromMapUrl) return `${fromMapUrl.lat},${fromMapUrl.lng}`;
+
       const hasCoords =
         typeof loc.lat === 'number' &&
         typeof loc.lng === 'number' &&
         !(loc.lat === 0 && loc.lng === 0);
       if (hasCoords) return `${loc.lat},${loc.lng}`;
+
       return encodeURIComponent(`${loc.location_name} ${tripName || ''}`.trim());
     };
 
@@ -1293,7 +1338,7 @@ export default function App() {
 
               <p className="text-[10px] text-slate-500 flex items-center gap-1 px-1">
                 <Map className="w-3 h-3 shrink-0" />
-                <span>เส้นทางวันนี้จะแม่นยำขึ้นถ้าตั้งชื่อสถานที่ให้ชัดเจน หรือมีพิกัดระบุไว้ (เช่นทริปจากแม่แบบสำเร็จรูป)</span>
+                <span>เส้นทางวันนี้จะแม่นยำขึ้นถ้าแปะ "ลิงก์ Google Maps" (แบบเต็ม ไม่ใช่ลิงก์แชร์ย่อ) ไว้ตอนเพิ่มสถานที่</span>
               </p>
 
               {(currentTrip?.days || [])
@@ -1649,10 +1694,10 @@ export default function App() {
               </div>
 
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   const form = e.target;
-                  saveLocationData(targetDayNum, {
+                  let locData = {
                     ...editingLocData,
                     time: form.time.value,
                     location_name: form.location_name.value,
@@ -1664,7 +1709,17 @@ export default function App() {
                     map_url: form.map_url.value,
                     ticket_url: uploadedTicketUrl || form.ticket_url.value,
                     attachment_note: form.attachment_note.value
-                  });
+                  };
+
+                  // ถ้าเป็นลิงก์ย่อและเป็นลิงก์ใหม่/เปลี่ยนไปจากเดิม ให้ resolve หาพิกัดก่อนบันทึก
+                  if (isShortMapLink(locData.map_url) && locData.map_url !== editingLocData?.map_url) {
+                    setResolvingMapUrl(true);
+                    const coords = await resolveMapUrlToCoords(locData.map_url);
+                    if (coords) locData = { ...locData, lat: coords.lat, lng: coords.lng };
+                    setResolvingMapUrl(false);
+                  }
+
+                  saveLocationData(targetDayNum, locData);
                 }}
                 className="space-y-2"
               >
@@ -1731,8 +1786,16 @@ export default function App() {
                 <input name="map_url" defaultValue={editingLocData?.map_url || ''} placeholder="ลิงก์ Google Maps (ถ้ามี)" className="w-full text-xs p-2.5 bg-slate-800 text-white rounded-lg border border-slate-700" />
 
                 <div className="flex gap-2 pt-2">
-                  <button type="submit" disabled={uploadingFile} className="flex-1 p-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-700 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
-                    <Save className="w-4 h-4" /> บันทึก
+                  <button type="submit" disabled={uploadingFile || resolvingMapUrl} className="flex-1 p-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-slate-700 text-white font-bold text-xs rounded-xl flex justify-center items-center gap-1 transition-colors">
+                    {resolvingMapUrl ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> กำลังตรวจสอบลิงก์...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" /> บันทึก
+                      </>
+                    )}
                   </button>
                   {editingLocData?.id && (
                     <button type="button" onClick={() => deleteLocationData(targetDayNum, editingLocData.id)} className="p-2.5 bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-xl transition-colors">
