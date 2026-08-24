@@ -308,6 +308,7 @@ export default function App() {
   const [editingLocData, setEditingLocData] = useState(null);
   const [targetDayNum, setTargetDayNum] = useState(1);
   const [shareCopyLabel, setShareCopyLabel] = useState('คัดลอกลิงก์');
+  const [newTripNameInput, setNewTripNameInput] = useState('');
 
   // Storage states
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -441,6 +442,25 @@ export default function App() {
     if (sessionUserRef.current) pushTripToCloud(starterTrip);
   };
 
+  // ดึงข้อมูลจาก localStorage มาโชว์ทันที ก่อนเช็ค auth/network ใดๆ
+  // กันหน้าจอว่างตอนออฟไลน์จริง หรือเน็ตช้า/ไม่เสถียร
+  const hydrateFromLocalCache = () => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        const localData = JSON.parse(saved);
+        if (localData && Array.isArray(localData.trips) && localData.trips.length > 0) {
+          setTripsList(localData.trips);
+          setActiveTripId(localData.activeTripId || localData.trips[0]?.trip_id || '');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to hydrate from local cache', e);
+    }
+    return false;
+  };
+
   const loadSharedTrip = async () => {
     setLoading(true);
     setSharedTripError('');
@@ -463,14 +483,16 @@ export default function App() {
     }
   };
 
-  const loadOwnedTrips = async (user) => {
-    setLoading(true);
-    await mergeGuestDataOnLogin(user);
+  const loadOwnedTrips = async (user, alreadyHydrated = false) => {
+    if (!alreadyHydrated) setLoading(true);
 
     if (!navigator.onLine) {
+      // ไม่มีเน็ตจริง -> ใช้ข้อมูลจาก cache (ถ้ามี, ดึงมาแล้วตอน hydrateFromLocalCache) ต่อไปเลย
       setLoading(false);
       return;
     }
+
+    await mergeGuestDataOnLogin(user);
 
     try {
       const { data, error } = await supabase
@@ -488,10 +510,12 @@ export default function App() {
         setTripsList(trips);
         setActiveTripId(fallbackId);
         persistLocalStorage(trips, fallbackId);
-      } else {
+      } else if (!alreadyHydrated) {
         setupDefaultStarterTrip();
       }
     } catch (err) {
+      // navigator.onLine บอกว่าออนไลน์ แต่ request จริงล้มเหลว (เช่น DevTools Offline throttle
+      // หรือเน็ตหลุดกลางทาง) -> ไม่ล้างข้อมูลที่ hydrate จาก cache ไว้แล้ว ปล่อยให้ user เห็นข้อมูลเดิมต่อไป
       console.warn('Could not load trips from Supabase:', err);
     } finally {
       setLoading(false);
@@ -527,11 +551,16 @@ export default function App() {
       return;
     }
 
+    // แสดงข้อมูลจาก cache ทันทีก่อนเช็ค auth/network ใดๆ กันหน้าจอว่างตอนออฟไลน์/เน็ตช้า
+    const hasCache = hydrateFromLocalCache();
+    if (hasCache) setLoading(false);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user || null;
       setSessionUser(currentUser);
-      if (currentUser) loadOwnedTrips(currentUser);
-      else loadGuestTrips();
+      if (currentUser) loadOwnedTrips(currentUser, hasCache);
+      else if (!hasCache) loadGuestTrips();
+      else setLoading(false);
     });
 
     const {
@@ -539,7 +568,7 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user || null;
       setSessionUser(currentUser);
-      if (currentUser) loadOwnedTrips(currentUser);
+      if (currentUser) loadOwnedTrips(currentUser, true);
     });
 
     const handleOnline = () => setIsOffline(false);
@@ -739,9 +768,10 @@ export default function App() {
   };
 
   const handleCreateBlankTrip = () => {
+    const finalName = newTripNameInput.trim() || 'ทริปใหม่ของฉัน';
     const newTrip = {
       trip_id: generateUUID(),
-      trip_name: 'ทริปใหม่ของฉัน',
+      trip_name: finalName,
       currency: 'THB',
       total_budget: 0,
       is_template: false,
@@ -750,6 +780,7 @@ export default function App() {
     };
     setActiveDay('all');
     setIsTemplateModalOpen(false);
+    setNewTripNameInput('');
     persistTrip(newTrip, newTrip.trip_id);
   };
 
@@ -1475,14 +1506,22 @@ export default function App() {
               </div>
 
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-                <div className="p-3 bg-rose-950/30 border border-rose-800/50 rounded-xl flex items-center justify-between gap-2">
+                <div className="p-3 bg-rose-950/30 border border-rose-800/50 rounded-xl space-y-2">
                   <div>
                     <h4 className="text-xs font-bold text-rose-300">สร้างทริปใหม่เปล่าๆ (Blank Trip)</h4>
                     <p className="text-[10px] text-slate-400">สร้างทริปจากหน้ากระดาษเปล่า ไม่ใช้แม่แบบ</p>
                   </div>
-                  <button onClick={handleCreateBlankTrip} className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
-                    + สร้างทริปเปล่า
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={newTripNameInput}
+                      onChange={(e) => setNewTripNameInput(e.target.value)}
+                      placeholder="ตั้งชื่อทริป (เช่น เที่ยวเกาหลี ธ.ค.)"
+                      className="flex-1 text-xs p-2 bg-slate-900 text-white rounded-lg border border-slate-700 outline-none focus:border-rose-500"
+                    />
+                    <button onClick={handleCreateBlankTrip} className="px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
+                      + สร้าง
+                    </button>
+                  </div>
                 </div>
 
                 <hr className="border-slate-800" />
