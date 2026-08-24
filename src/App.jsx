@@ -39,7 +39,8 @@ import {
   Copy,
   Eye,
   Edit3,
-  Ban
+  Ban,
+  Map
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -969,6 +970,36 @@ export default function App() {
     updateCurrentTripData({ ...currentTrip, days: updatedDays });
   };
 
+  // สร้างลิงก์ Google Maps เส้นทางทั้งวัน (ต้นทาง -> จุดแวะ -> ปลายทาง)
+  // ใช้พิกัด lat/lng ก่อนถ้ามี (แม่นกว่า) ไม่มีค่อย fallback เป็นชื่อสถานที่ + ค้นหา
+  const buildDayRouteUrl = (dayData, tripName) => {
+    const locs = (dayData.locations || []).filter((l) => l.location_name);
+    if (locs.length === 0) return null;
+
+    const toPoint = (loc) => {
+      const hasCoords =
+        typeof loc.lat === 'number' &&
+        typeof loc.lng === 'number' &&
+        !(loc.lat === 0 && loc.lng === 0);
+      if (hasCoords) return `${loc.lat},${loc.lng}`;
+      return encodeURIComponent(`${loc.location_name} ${tripName || ''}`.trim());
+    };
+
+    if (locs.length === 1) {
+      return `https://www.google.com/maps/search/?api=1&query=${toPoint(locs[0])}`;
+    }
+
+    // Google Maps รองรับจุดแวะผ่าน URL ได้จำกัด (~9 จุด) ตัดถ้าเกินกันลิงก์พัง
+    const capped = locs.slice(0, 10);
+    const origin = toPoint(capped[0]);
+    const destination = toPoint(capped[capped.length - 1]);
+    const waypoints = capped.slice(1, -1).map(toPoint).join('|');
+
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`;
+    if (waypoints) url += `&waypoints=${waypoints}`;
+    return url;
+  };
+
   const getFilteredLocations = (locations) => {
     if (!locations) return [];
     return locations.filter((loc) => {
@@ -1260,6 +1291,11 @@ export default function App() {
                 </div>
               </div>
 
+              <p className="text-[10px] text-slate-500 flex items-center gap-1 px-1">
+                <Map className="w-3 h-3 shrink-0" />
+                <span>เส้นทางวันนี้จะแม่นยำขึ้นถ้าตั้งชื่อสถานที่ให้ชัดเจน หรือมีพิกัดระบุไว้ (เช่นทริปจากแม่แบบสำเร็จรูป)</span>
+              </p>
+
               {(currentTrip?.days || [])
                 .filter((d) => activeDay === 'all' || d.day === activeDay)
                 .map((dayData) => {
@@ -1268,30 +1304,45 @@ export default function App() {
 
                   return (
                     <div key={dayData.day} className="mb-6 space-y-3">
-                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
-                        <div>
+                      <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700 flex justify-between items-center gap-2">
+                        <div className="min-w-0">
                           <span className="text-xs font-bold text-rose-400">Day {dayData.day}</span>
-                          <h2 className="text-sm font-bold text-white">{dayData.title}</h2>
+                          <h2 className="text-sm font-bold text-white truncate">{dayData.title}</h2>
                         </div>
-                        {!isReadOnly && (
-                          <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {(dayData.locations || []).length > 0 && (
                             <button
                               onClick={() => {
-                                setTargetDayNum(dayData.day);
-                                setEditingLocData(null);
-                                setUploadedTicketUrl('');
-                                setNewlyUploadedUrls([]);
-                                setIsModalOpen(true);
+                                const url = buildDayRouteUrl(dayData, currentTrip?.trip_name);
+                                if (url) window.open(url, '_blank', 'noopener,noreferrer');
                               }}
-                              className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
+                              className="p-1.5 bg-slate-900 hover:bg-cyan-950 text-cyan-400 rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors border border-cyan-800/40"
+                              title="ดูเส้นทางทั้งวันใน Google Maps"
                             >
-                              <Plus className="w-3.5 h-3.5" /> เพิ่มสถานที่
+                              <Map className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">เส้นทางวันนี้</span>
                             </button>
-                            <button onClick={() => handleDeleteDay(dayData.day)} className="p-1.5 bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-lg text-xs transition-colors" title={`ลบ Day ${dayData.day}`}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
+                          )}
+                          {!isReadOnly && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setTargetDayNum(dayData.day);
+                                  setEditingLocData(null);
+                                  setUploadedTicketUrl('');
+                                  setNewlyUploadedUrls([]);
+                                  setIsModalOpen(true);
+                                }}
+                                className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs flex items-center gap-1 font-semibold transition-colors"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> เพิ่มสถานที่
+                              </button>
+                              <button onClick={() => handleDeleteDay(dayData.day)} className="p-1.5 bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-400 rounded-lg text-xs transition-colors" title={`ลบ Day ${dayData.day}`}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {filteredLocs.length === 0 ? (
